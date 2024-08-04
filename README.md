@@ -35,7 +35,8 @@ You can also optionally have it scan for a series of characters (tags) and remov
 ##### -p or --prune-tags
     looks for common Protools Processing Tags and removes files with them.  can use tags.txt to define them.
 
-##### -n or --no-filename-check :  this doesn't run the normal duplicate filename check on the database.  Useful if you want to just remove tags or compare with another database only.
+##### -n or --no-filename-check
+     this doesn't run the normal duplicate filename check on the database.  Useful if you want to just remove tags or compare with another database only.
 
 ##### -d or --create-duplicates-database
     after processing the database it will generate a new database containing all the deletions that were made
@@ -49,6 +50,10 @@ You can also optionally have it scan for a series of characters (tags) and remov
 ##### -u or --unsafe
     writes DIRECTLY to the database.  Also, skips all the yes, no warnings.  USE WITH CAUTION.
 
+##### -h or --help
+    gives a nice help summary
+
+    
 
 The Program runs in the following order if all optional flags are enabled:
   Compare Database, then Check For Duplicates in the main database, then Prune Tags.
