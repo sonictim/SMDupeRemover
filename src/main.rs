@@ -125,7 +125,7 @@ fn remove_duplicates(db_path: &str, unsafe_mode: bool, verbose: bool) -> Result<
     let mut conn = Connection::open(db_path)?;
 
     // Read the order file
-    let order_file = "order.txt";
+    let order_file = "SMDupe_order.txt";
     let order = read_order(order_file).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e)))?;
 
     // println!("ORDER!");
@@ -406,8 +406,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if generate_config_files {
-        // Generate order.txt and tags.txt with default values
-        let order_file_path = "order.txt";
+        // Generate SMDupe_order.txt and SMDupe_tags.txt with default values
+        let order_file_path = "SMDupe_order.txt";
 
         let mut order_file = File::create(order_file_path)?;
         writeln!(order_file, "## Column in order of Priority and whether it should be DESCending or ASCending.  Hashtag will bypass")?;
@@ -417,7 +417,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         println!("Created {} with default order.", order_file_path);
 
-        let tags_file_path = "tags.txt";
+        let tags_file_path = "SMDupe_tags.txt";
 
         let mut tags_file = File::create(tags_file_path)?;
         for tag in DEFAULT_TAGS {
@@ -464,7 +464,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         if prune_tags_flag {
-            total += prune_tags(&target_db_path, "tags.txt", just_say_yes, verbose)?;
+            total += prune_tags(&target_db_path, "SMDupe_tags.txt", just_say_yes, verbose)?;
         }
         println!("{} Total Files Removed From {}", total, target_db_path);
 
@@ -486,10 +486,10 @@ Usage: SMDupeRemover <database> [options]
 Options:
     -c, --compare <database>          Compare with another database
     -d, --create-duplicates-database  Generates an additional _dupes database of all files that were removed
-    -g, --generate-config-files       Generate default config files (order.txt and tags.txt)
+    -g, --generate-config-files       Generate default config files (SMDupe_order.txt and SMDupe_tags.txt)
     -h, --help                        Display this help message
     -n, --no-filename-check           Skips searching for filename duplicates in main database
-    -p, --prune-tags                  Remove Files with Specified Tags in tags.txt or use defaults
+    -p, --prune-tags                  Remove Files with Specified Tags in SMDupe_tags.txt or use defaults
     -u, --unsafe                      WRITES DIRECTLY TO TARGET DATABASE with NO PROMPT
     -v, --verbose                     Display Additional File Processing Details
     -y, --no-prompt                   Auto Answer YES to all prompts
@@ -503,8 +503,8 @@ Examples:
     smduperemover mydatabase.db --compare anotherdatabase.db
 
 Configuration:
-    order.txt defines the order of data (colums) checked when deciding on the logic of which file to keep
-    tags.txt is a list of character combinations that if found in the filename, it will be removed with the -p option
+    SMDupe_order.txt defines the order of data (colums) checked when deciding on the logic of which file to keep
+    SMDupe_tags.txt is a list of character combinations that if found in the filename, it will be removed with the -p option
 
 Description:
     SMDupeRemover is a tool for removing duplicate entries from a Soundminer database.
