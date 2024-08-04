@@ -75,6 +75,8 @@ You can really use any column you like from the Soundminer database and create y
 ### tags.txt
 When processing audio files in protools, you can get lots of little tags added on to the end of filenames when creating this new media, but ultimately, it's a duplicate of something you already have in your library.  You can use tags.txt to designate what to look for and have removed from your library. You can designate any combination of characters you like.  I've put in a bunch I've found in my library as a default.  I suggest adding away.  I can also add more to the default you think I've missed.  Just send me a message.
 
+tags.txt will only be processed with the --prune-tags option
+
 
 
  
