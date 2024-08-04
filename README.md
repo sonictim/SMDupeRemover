@@ -26,31 +26,31 @@ You can also optionally have it scan for a series of characters (tags) and remov
 
 ### ARGUMENTS:
 
-##### -g or --generate-config-files
+#### -g or --generate-config-files
     generates tags.txt and order.txt. order.txt defines how the main duplicate checker decides which file to keep.  this will overwrite what's there with the default values if they already exist in the directory.  I suggest running once and then modifying from there if you like.  Without these files, the program will just do the default order/tags I have pre programmed in the program.
 
 #### -c or --compare <database2>
     if any file in the target database exists in the comparison database, it will be removed
 
-##### -p or --prune-tags
+#### -p or --prune-tags
     looks for common Protools Processing Tags and removes files with them.  can use tags.txt to define them.
 
-##### -n or --no-filename-check
+#### -n or --no-filename-check
      this doesn't run the normal duplicate filename check on the database.  Useful if you want to just remove tags or compare with another database only.
 
-##### -d or --create-duplicates-database
+#### -d or --create-duplicates-database
     after processing the database it will generate a new database containing all the deletions that were made
 
-##### -v or --verbose
+#### -v or --verbose
     displays each file as it's being deleted.  Can FLOOD your terminal
 
-##### -y or --no-prompt
+#### -y or --no-prompt
     automatically responds yes to the processing prompts
 
-##### -u or --unsafe
+#### -u or --unsafe
     writes DIRECTLY to the database.  Also, skips all the yes, no warnings.  USE WITH CAUTION.
 
-##### -h or --help
+#### -h or --help
     gives a nice help summary
 
     
