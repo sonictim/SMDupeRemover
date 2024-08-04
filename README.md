@@ -29,7 +29,7 @@ You can also optionally have it scan for a series of characters (tags) and remov
 ##### -g or --generate-config-files
     generates tags.txt and order.txt. order.txt defines how the main duplicate checker decides which file to keep.  this will overwrite what's there with the default values if they already exist in the directory.  I suggest running once and then modifying from there if you like.  Without these files, the program will just do the default order/tags I have pre programmed in the program.
 
-##### -c or --compare <database2>
+#### -c or --compare <database2>
     if any file in the target database exists in the comparison database, it will be removed
 
 ##### -p or --prune-tags
