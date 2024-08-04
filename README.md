@@ -54,6 +54,7 @@ Use the --generate-config-files option to create/overwrite them with the default
 ### order.txt
 
 The default logic when comparing similar filenames on what to keep is:  
+
     duration DESC  
     channels DESC  
     sampleRate DESC  
