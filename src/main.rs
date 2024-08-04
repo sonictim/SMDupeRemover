@@ -330,13 +330,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
-            "--generate-config-files" => generate_config_files = true,
-            "-g" => generate_config_files = true,
-            "--prune-tags" => prune_tags_flag = true,
-            "-p" => prune_tags_flag = true,
-            "--no-filename-check" => no_filename_check = true,
-            "-n" => no_filename_check = true,
-            "--compare" => {
+            "--generate-config-files" | "-g" => generate_config_files = true,
+            "--prune-tags" | "-p" => prune_tags_flag = true,
+            "--no-filename-check" | "-n" => no_filename_check = true,
+            "--compare" | "-c" => {
                 if i + 1 < args.len() {
                     compare_db = Some(args[i + 1].clone());
                     i += 1; // Skip the next argument since it's the database name
@@ -345,17 +342,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     return Ok(());
                 }
             },
-            "-c" => {
-                if i + 1 < args.len() {
-                    compare_db = Some(args[i + 1].clone());
-                    i += 1; // Skip the next argument since it's the database name
-                } else {
-                    println!("Usage: {} <database> [--prune-tags] [--no-filename-check] [--compare <database_b>] [--unsafe] [--generate-config-files]", args[0]);
-                    return Ok(());
-                }
-            },
-            "--unsafe" => unsafe_mode = true,
-            "-u" => unsafe_mode = true,
+            "--unsafe" | "-u" => unsafe_mode = true,
             _ => {
                 if primary_db.is_none() {
                     primary_db = Some(args[i].clone());
