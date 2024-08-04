@@ -48,12 +48,12 @@ writes DIRECTLY to the database.  Also, skips all the yes, no warnings.  USE WIT
 gives a nice help summary
 
 ## CONFIGURATION:
-SMDupeRemover has a built in logic and defaults but they can be overridden with the following configuration files
+SMDupeRemover has a built in logic and defaults but they can be overridden with the following configuration files.  
+Use the --generate-config-files option to create/overwrite them with the default settings.
 
 ### order.txt
-The program has it's own built in logic as far as deciding what logic it will use to chose while file to keep, but if you'd like to adjust it you can.  Just create *order.txt* or you can generate it with --generate-config-files.
 
-The default logic is:  
+The default logic when comparing similar filenames on what to keep is:  
     duration DESC  
     channels DESC  
     sampleRate DESC  
