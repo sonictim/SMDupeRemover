@@ -26,7 +26,7 @@ generates SMDupe_tags.txt and SMDupe_order.txt. SMDupe_order.txt defines how the
 ### -c or --compare <database2>
 if any file in the target database exists in the comparison database, it will be removed
 
-### -p or --prune-tags
+### -t or --prune-tags
 looks for common Protools Processing Tags and removes files with them.  can use SMDupe_tags.txt to define them.
 
 ### -n or --no-filename-check
