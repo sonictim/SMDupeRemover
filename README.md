@@ -24,10 +24,10 @@ You can also COMPARE two databases and remove any file in the main database that
 You can also optionally have it scan for a series of characters (tags) and remove any files with them.  This is useful for finding all those -PiSH_ and -RVRS_ files protools generates.  There is an included default list, or you can create your own tags.txt.  Again --geneerate-config-files will create these files showing you the default list
 
 
-### ARGUMENTS:
+## ARGUMENTS:
 
-#### -g or --generate-config-files
-    generates tags.txt and order.txt. order.txt defines how the main duplicate checker decides which file to keep.  this will overwrite what's there with the default values if they already exist in the directory.  I suggest running once and then modifying from there if you like.  Without these files, the program will just do the default order/tags I have pre programmed in the program.
+### -g or --generate-config-files
+generates tags.txt and order.txt. order.txt defines how the main duplicate checker decides which file to keep.  this will overwrite what's there with the default values if they already exist in the directory.  I suggest running once and then modifying from there if you like.  Without these files, the program will just do the default order/tags I have pre programmed in the program.
 
 #### -c or --compare <database2>
     if any file in the target database exists in the comparison database, it will be removed
