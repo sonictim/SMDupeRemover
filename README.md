@@ -11,6 +11,7 @@ The main program will Copy your database to a new database with _thinned added f
 
 The default comparison logic is:
    Duration
+   
    Channels
    Sample Rate
    Bit Rate
