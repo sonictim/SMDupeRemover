@@ -23,6 +23,9 @@ You can also COMPARE two databases and remove any file in the main database that
 
 You can also optionally have it scan for a series of characters (tags) and remove any files with them.  This is useful for finding all those -PiSH_ and -RVRS_ files protools generates.  There is an included default list, or you can create your own tags.txt.  Again --geneerate-config-files will create these files showing you the default list
 
+The Program runs in the following order if all optional flags are enabled:
+  Compare Database, then Check For Duplicates in the main database, then Prune Tags.
+
 
 ## ARGUMENTS:
 
@@ -53,7 +56,28 @@ writes DIRECTLY to the database.  Also, skips all the yes, no warnings.  USE WIT
 ### -h or --help
 gives a nice help summary
 
+## CONFIGURATION:
+
+### order.txt
+The program has it's own built in logic as far as deciding what logic it will use to chose while file to keep, but if you'd like to adjust it you can.  Just create *order.txt* or you can generate it with --generate-config-files.
+
+The default logic is:
+    duration DESC
+    channels DESC
+    sampleRate DESC
+    bitDepth DESC
+    BWDate ASC
+    scannedDate ASC
+
+DESC is descending, ASC is ascending. The higher up in the list, the higher the priority, so first it checks duration and works it's way down.  
+You can really use any column you like from the Soundminer database and create your own custom order/logic
+
+### tags.txt
+When processing audio files in protools, you can get lots of little tags added on to the end of filenames when creating this new media, but ultimately, it's a duplicate of something you already have in your library.  You can use tags.txt to designate what to look for and have removed from your library. You can designate any combination of characters you like.  I've put in a bunch I've found in my library as a default.  I suggest adding away.  I can also add more to the default you think I've missed.  Just send me a message.
+
+
+
+ 
     
 
-The Program runs in the following order if all optional flags are enabled:
-  Compare Database, then Check For Duplicates in the main database, then Prune Tags.
+
