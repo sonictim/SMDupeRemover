@@ -1,4 +1,6 @@
 #!/bin/sh
+## bash script to build UNIVERSAL BINARY for MAC of SMDupeRemover
+
 
 # Set the binary name
 BINARY_NAME="SMDupeRemover"
