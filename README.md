@@ -8,23 +8,13 @@ Usage:
     SMDupeRemover <database> arguments
 
 The main program will Copy your database to a new database with _thinned added for identification.  It will then scan the new database for identical filenames and then use logic to decide which one to keep.
+The default comparison logic is explained below in configuration.  
 
-The default comparison logic is:
-   Duration
-   
-   Channels
-   Sample Rate
-   Bit Rate
-   BWdate (original file creation date)
-   Date Added to Database
-
-you can change this by creating a file called order.txt  or adding --generate-config-files as an argument
-
-You can also COMPARE two databases and remove any file in the main database that also exists in the comparison database
+You can also COMPARE two databases and remove any file in the main database that also exists in the comparison database.  
 
 You can also optionally have it scan for a series of characters (tags) and remove any files with them.  This is useful for finding all those -PiSH_ and -RVRS_ files protools generates.  There is an included default list, or you can create your own tags.txt.  Again --geneerate-config-files will create these files showing you the default list
 
-The Program runs in the following order if all optional flags are enabled:
+The Program runs in the following order if all optional flags are enabled:  
   Compare Database, then Check For Duplicates in the main database, then Prune Tags.
 
 
@@ -62,13 +52,13 @@ gives a nice help summary
 ### order.txt
 The program has it's own built in logic as far as deciding what logic it will use to chose while file to keep, but if you'd like to adjust it you can.  Just create *order.txt* or you can generate it with --generate-config-files.
 
-The default logic is:
-    duration DESC
-    channels DESC
-    sampleRate DESC
-    bitDepth DESC
-    BWDate ASC
-    scannedDate ASC
+The default logic is:  
+    duration DESC  
+    channels DESC  
+    sampleRate DESC  
+    bitDepth DESC  
+    BWDate ASC  
+    scannedDate ASC  
 
 DESC is descending, ASC is ascending. The higher up in the list, the higher the priority, so first it checks duration and works it's way down.  
 You can really use any column you like from the Soundminer database and create your own custom order/logic
