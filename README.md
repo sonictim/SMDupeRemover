@@ -5,7 +5,7 @@
 ### THIS LITERALLY DELETES RECORDS FROM YOUR DATABASE, SO I ADVISE YOU NEVER USE IT UNLESS YOU ARE VERY CERTAIN
 
 Usage: 
-    SMDupeRemover <database> arguments
+    `SMDupeRemover <database> arguments`
 
 The main program will Copy your database to a new database with _thinned added for identification.  It will then scan the new database for identical filenames and then use logic to decide which one to keep.
 The default comparison logic is explained below in configuration.  
@@ -20,13 +20,13 @@ The Program runs in the following order if all optional flags are enabled:
 
 ## ARGUMENTS:
 
-### -g or --generate-config-files
+### `-g or --generate-config-files`
 generates SMDupe_tags.txt and SMDupe_order.txt. SMDupe_order.txt defines how the main duplicate checker decides which file to keep.  this will overwrite what's there with the default values if they already exist in the directory.  I suggest running once and then modifying from there if you like.  Without these files, the program will just do the default order/tags I have pre programmed in the program.
 
-### -c or --compare <database2>
+### `-c or --compare <database2>`
 if any file in the target database exists in the comparison database, it will be removed
 
-### -t or --prune-tags
+### `-t or --prune-tags`
 looks for common Protools Processing Tags and removes files with them.  can use SMDupe_tags.txt to define them.
 
 ### -n or --no-filename-check

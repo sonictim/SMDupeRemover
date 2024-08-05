@@ -17,3 +17,5 @@ lipo -create -output $BINARY_NAME target/aarch64-apple-darwin/release/$BINARY_NA
 
 # Verify the binary
 file $BINARY_NAME
+
+mv $BINARY_NAME Mac\ Universal\ Binary/$BINARY_NAME

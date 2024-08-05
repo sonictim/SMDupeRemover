@@ -22,6 +22,63 @@ const DEFAULT_TAGS: [&str; 29] = [
     "-AVrT_", "-RING_"
 ];
 
+//  WORK IN PROGRESS CONVERTING CONFIG TO A STRUCT
+
+// #[derive(Debug)]
+// struct Config {
+//     target_db_path: String,
+//     compare_db_path: Option<String>,
+//     duplicate_db_path: Option<String>,
+//     generate_config_files: bool,
+//     unsafe_mode: bool,
+//     verbose_mode: bool,
+//     order: Vec<String>,
+//     tags: Vec<String>,
+
+
+//     let mut generate_config_files = false;
+//     let mut primary_db: Option<String> = None;
+//     let mut prune_tags_flag = false;
+//     let mut no_filename_check = false;
+//     let mut compare_db: Option<String> = None;
+//     let mut unsafe_mode = false;
+//     let mut just_say_yes = false;
+//     let mut duplicates_database = false;
+//     let mut duplicate_db_path = "".to_string();
+//     let mut verbose = false;
+// }
+
+// impl Config {
+//     fn new(args: &[String]) -> Result<Config, &'static str> {
+//         if args.len() < 2 {
+//             return Err("Not enough arguments");
+//         }
+
+//         let unsafe_mode = args.contains(&"--unsafe".to_string());
+//         let verbose_mode = args.contains(&"--verbose".to_string());
+//         let generate_config_files = args.contains(&"--generate-config-files".to_string());
+
+//         let target_db = args[1].clone();
+//         let compare_db = if args.len() > 2 {
+//             Some(args[2].clone())
+//         } else {
+//             None
+//         };
+
+//         let order = read_order("SMDupe_order.txt").unwrap_or_else(|_| DEFAULT_ORDER.iter().map(|&s| s.to_string()).collect());
+//         let tags = read_tags("SMDupe_tags.txt").unwrap_or_else(|_| DEFAULT_TAGS.iter().map(|&s| s.to_string()).collect());
+
+//         Ok(Config {
+//             unsafe_mode,
+//             verbose_mode,
+//             generate_config_files,
+//             target_db,
+//             compare_db,
+//             order,
+//             tags,
+//         })
+//     }
+// }
 
 
 fn fetch_filenames(conn: &Connection) -> Result<HashSet<String>> {
