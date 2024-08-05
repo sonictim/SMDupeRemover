@@ -41,17 +41,17 @@ displays each file as it's being deleted.  Can FLOOD your terminal
 #### `-y or --no-prompt`
 automatically responds yes to the processing prompts
 
-### -u or --unsafe
+#### `-u or --unsafe`
 writes DIRECTLY to the database.  Also, skips all the yes, no warnings.  USE WITH CAUTION.
 
-### -h or --help
+#### `-h or --help`
 gives a nice help summary
 
 ## CONFIGURATION:
 SMDupeRemover has a built in logic and defaults but they can be overridden with the following configuration files.  
 Use the --generate-config-files option to create/overwrite them with the default settings.
 
-### SMDupe_order.txt
+### `SMDupe_order.txt`
 
 The default logic when comparing similar filenames on what to keep is:  
 
@@ -65,7 +65,7 @@ The default logic when comparing similar filenames on what to keep is:
 DESC is descending, ASC is ascending. The higher up in the list, the higher the priority, so first it checks duration and works it's way down.  
 You can really use any column you like from the Soundminer database and create your own custom order/logic
 
-### SMDupe_tags.txt
+### `SMDupe_tags.txt`
 When processing audio files in protools, you can get lots of little tags added on to the end of filenames when creating this new media, but ultimately, it's a duplicate of something you already have in your library.  You can use SMDupe_tags.txt to designate what to look for and have removed from your library. You can designate any combination of characters you like.  I've put in a bunch I've found in my library as a default.  I suggest adding away.  I can also add more to the default you think I've missed.  Just send me a message.
 
 SMDupe_tags.txt will only be processed with the --prune-tags option
