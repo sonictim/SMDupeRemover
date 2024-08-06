@@ -22,63 +22,121 @@ const DEFAULT_TAGS: [&str; 29] = [
     "-AVrT_", "-RING_"
 ];
 
-//  WORK IN PROGRESS CONVERTING CONFIG TO A STRUCT
-
-// #[derive(Debug)]
-// struct Config {
-//     target_db_path: String,
-//     compare_db_path: Option<String>,
-//     duplicate_db_path: Option<String>,
-//     generate_config_files: bool,
-//     unsafe_mode: bool,
-//     verbose_mode: bool,
-//     order: Vec<String>,
-//     tags: Vec<String>,
 
 
-//     let mut generate_config_files = false;
-//     let mut primary_db: Option<String> = None;
-//     let mut prune_tags_flag = false;
-//     let mut no_filename_check = false;
-//     let mut compare_db: Option<String> = None;
-//     let mut unsafe_mode = false;
-//     let mut just_say_yes = false;
-//     let mut duplicates_database = false;
-//     let mut duplicate_db_path = "".to_string();
-//     let mut verbose = false;
-// }
 
-// impl Config {
-//     fn new(args: &[String]) -> Result<Config, &'static str> {
-//         if args.len() < 2 {
-//             return Err("Not enough arguments");
-//         }
+#[derive(Debug)]
+struct Config {
+    generate_config_files: bool,
+    primary_db: Option<String>,
+    prune_tags_flag: bool,
+    skip_filename_check: bool,
+    compare_db: Option<String>,
+    unsafe_mode: bool,
+    no_prompt: bool,
+    duplicates_database: bool,
+    verbose: bool,
+}
 
-//         let unsafe_mode = args.contains(&"--unsafe".to_string());
-//         let verbose_mode = args.contains(&"--verbose".to_string());
-//         let generate_config_files = args.contains(&"--generate-config-files".to_string());
+impl Config {
+    fn new(args: &[String]) -> Result<Config, &'static str> {
+        let mut generate_config_files = false;
+        let mut primary_db: Option<String> = None;
+        let mut prune_tags_flag = false;
+        let mut skip_filename_check = false;
+        let mut compare_db: Option<String> = None;
+        let mut unsafe_mode = false;
+        let mut no_prompt = false;
+        let mut duplicates_database = false;
+        let mut verbose = false;
 
-//         let target_db = args[1].clone();
-//         let compare_db = if args.len() > 2 {
-//             Some(args[2].clone())
-//         } else {
-//             None
-//         };
+        let mut i = 1;
+        while i < args.len() {
+            match args[i].as_str() {
+                "--generate-config-files" => generate_config_files = true,
+                "--prune-tags" => prune_tags_flag = true,
+                "--no-filename-check" => skip_filename_check = true,
+                "--compare" => {
+                    if i + 1 < args.len() {
+                        compare_db = Some(args[i + 1].clone());
+                        i += 1; // Skip the next argument since it's the database name
+                    } else {
+                        print_help();
+                        return Err("Missing database name for --compare");
+                    }
+                },
+                "--no-prompt" | "--yes" => no_prompt = true,
+                "--unsafe" => {
+                    unsafe_mode = true;
+                    no_prompt = true;
+                },
+                "--create-duplicates-database" => duplicates_database = true,
+                "--verbose" => verbose = true,
+                "--help" => {
+                    print_help();
+                    return Err("Help requested");
+                }
+                _ => {
+                    if args[i].starts_with('-') && !args[i].starts_with("--") {
+                        for c in args[i][1..].chars() {
+                            match c {
+                                'g' => generate_config_files = true,
+                                't' => prune_tags_flag = true,
+                                'n' => skip_filename_check = true,
+                                'y' => no_prompt = true,
+                                'u' => {
+                                    unsafe_mode = true;
+                                    no_prompt = true;
+                                },
+                                'd' => duplicates_database = true,
+                                'v' => verbose = true,
+                                'h' => {
+                                    print_help();
+                                    return Err("Help requested");
+                                },
+                                'c' => {
+                                    if i + 1 < args.len() {
+                                        compare_db = Some(args[i + 1].clone());
+                                        i += 1; // Skip the next argument since it's the database name
+                                    } else {
+                                        print_help();
+                                        return Err("Missing database name for -c");
+                                    }
+                                },
+                                _ => {
+                                    println!("Unknown option: -{}", c);
+                                    print_help();
+                                    return Err("Unknown option");
+                                }
+                            }
+                        }
+                    } else {
+                        if primary_db.is_none() {
+                            primary_db = Some(args[i].clone());
+                        } else {
+                            print_help();
+                            return Err("Multiple primary databases specified");
+                        }
+                    }
+                }
+            }
+            i += 1;
+        }
 
-//         let order = read_order("SMDupe_order.txt").unwrap_or_else(|_| DEFAULT_ORDER.iter().map(|&s| s.to_string()).collect());
-//         let tags = read_tags("SMDupe_tags.txt").unwrap_or_else(|_| DEFAULT_TAGS.iter().map(|&s| s.to_string()).collect());
+        Ok(Config {
+            generate_config_files,
+            primary_db,
+            prune_tags_flag,
+            skip_filename_check,
+            compare_db,
+            unsafe_mode,
+            no_prompt,
+            duplicates_database,
+            verbose,
+        })
+    }
+}
 
-//         Ok(Config {
-//             unsafe_mode,
-//             verbose_mode,
-//             generate_config_files,
-//             target_db,
-//             compare_db,
-//             order,
-//             tags,
-//         })
-//     }
-// }
 
 
 fn fetch_filenames(conn: &Connection) -> Result<HashSet<String>> {
@@ -130,7 +188,7 @@ fn compare_duplicates(compare_db: &str, target_db: &str, unsafe_mode: bool) -> R
     
     let common_filenames: HashSet<_> = filenames_a.intersection(&filenames_b).cloned().collect();
    
-    let total = common_filenames.len();
+    let mut total = common_filenames.len();
     if total == 0 {
         println!("NO OVERLAPPING FILENAMES FOUND!");
         return Ok(0); // Exit the function early if no duplicates are found
@@ -151,6 +209,7 @@ fn compare_duplicates(compare_db: &str, target_db: &str, unsafe_mode: bool) -> R
             println!("Removed {} files from {}", common_filenames.len(), target_db);
         } else {
             println!("Aborted deletion.");
+            total = 0;
         }
     }
 
@@ -223,7 +282,7 @@ fn remove_duplicates(db_path: &str, unsafe_mode: bool, verbose: bool) -> Result<
         rows.filter_map(Result::ok).collect()
     };
 
-    let total = ids_to_delete.len();
+    let mut total = ids_to_delete.len();
 
     if total == 0 {
         println!("ALL FILENAMES are UNIQUE! in {}", db_path);
@@ -253,6 +312,7 @@ fn remove_duplicates(db_path: &str, unsafe_mode: bool, verbose: bool) -> Result<
             println!("Removed {} Entries from {}", total, db_path);
         } else {
             println!("Aborted deletion.");
+            total = 0;
         }
     }
 
@@ -289,7 +349,7 @@ fn prune_tags(db_path: &str, tags_filename: &str, unsafe_mode: bool, verbose: bo
     let mut conn = Connection::open(db_path)?;
     let tags = read_tags(tags_filename)?;
 
-    let total_rows_found = count_rows_with_tags(&mut conn, &tags, verbose)?;
+    let mut total_rows_found = count_rows_with_tags(&mut conn, &tags, verbose)?;
 
     if total_rows_found == 0 {
         println!("No rows found with the specified tags.");
@@ -313,6 +373,7 @@ fn prune_tags(db_path: &str, tags_filename: &str, unsafe_mode: bool, verbose: bo
             println!("Deleted {} rows from {}", rows_deleted, db_path);
         } else {
             println!("Aborted deletion.");
+            total_rows_found = 0;
         }
     }
     Ok(total_rows_found)
@@ -362,6 +423,7 @@ fn count_rows_with_tags(conn: &mut Connection, tags: &[String], verbose: bool) -
     Ok(total_rows_found)
 }
 
+//FUNCTION FOR CREATING DATABASE THAT ONLY CONTAINS THE DUPLICATES THAT WERE REMOVED
 fn remove_matching_rows(dupe_db_path: &str, processed_db_path: &str) -> Result<()> {
     let mut dupe_conn = Connection::open(dupe_db_path)?;
     let processed_conn = Connection::open(processed_db_path)?;
@@ -400,92 +462,9 @@ fn remove_matching_rows(dupe_db_path: &str, processed_db_path: &str) -> Result<(
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
-    
-    let mut generate_config_files = false;
-    let mut primary_db: Option<String> = None;
-    let mut prune_tags_flag = false;
-    let mut no_filename_check = false;
-    let mut compare_db: Option<String> = None;
-    let mut unsafe_mode = false;
-    let mut just_say_yes = false;
-    let mut duplicates_database = false;
-    let mut duplicate_db_path = "".to_string();
-    let mut verbose = false;
+    let config = Config::new(&args)?;
 
-    let mut i = 1;
-    while i < args.len() {
-        match args[i].as_str() {
-            "--generate-config-files" | "-g" => generate_config_files = true,
-            "--prune-tags" | "-t" => prune_tags_flag = true,
-            "--no-filename-check" | "-n" => no_filename_check = true,
-            "--compare" | "-c" => {
-                if i + 1 < args.len() {
-                    compare_db = Some(args[i + 1].clone());
-                    i += 1; // Skip the next argument since it's the database name
-                } else {
-                    print_help();
-                    return Ok(());
-                }
-            },
-            "--no-prompt" | "--yes" | "-y" => just_say_yes = true,
-            "--unsafe" | "-u" => {
-                unsafe_mode = true;
-                just_say_yes = true;
-            },
-            "--create-duplicates-database" | "-d" => duplicates_database = true,
-            "--verbose" | "-v" => verbose = true,
-            "--help" | "-h" => {
-                print_help();
-                return Ok(());
-            }
-            _ => {
-                if args[i].starts_with('-') && !args[i].starts_with("--") {
-                    for c in args[i][1..].chars() {
-                        match c {
-                            'g' => generate_config_files = true,
-                            't' => prune_tags_flag = true,
-                            'n' => no_filename_check = true,
-                            'y' => just_say_yes = true,
-                            'u' => {
-                                unsafe_mode = true;
-                                just_say_yes = true;
-                            },
-                            'd' => duplicates_database = true,
-                            'v' => verbose = true,
-                            'h' => {
-                                print_help();
-                                return Ok(());
-                            },
-                            'c' => {
-                                if i + 1 < args.len() {
-                                    compare_db = Some(args[i + 1].clone());
-                                    i += 1; // Skip the next argument since it's the database name
-                                } else {
-                                    print_help();
-                                    return Ok(());
-                                }
-                            },
-                            _ => {
-                                println!("Unknown option: -{}", c);
-                                print_help();
-                                return Ok(());
-                            }
-                        }
-                    }
-                } else {
-                    if primary_db.is_none() {
-                        primary_db = Some(args[i].clone());
-                    } else {
-                        print_help();
-                        return Ok(());
-                    }
-                }
-            }
-        }
-        i += 1;
-    }
-
-    if generate_config_files {
+    if config.generate_config_files {
         // Generate SMDupe_order.txt and SMDupe_tags.txt with default values
         let order_file_path = "SMDupe_order.txt";
 
@@ -507,22 +486,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Created {} with default tags.", tags_file_path);
 
         // Exit if no other arguments
-        if primary_db.is_none() && compare_db.is_none() {
+        if config.primary_db.is_none() && config.compare_db.is_none() {
             return Ok(());
         }
     }
 
-    if let Some(db_path) = primary_db {
+    if let Some(db_path) = config.primary_db {
         if !Path::new(&db_path).exists() {
             println!("Error: Primary database {} does not exist.", db_path);
             return Ok(());
         }
-        if duplicates_database {
+        let mut duplicate_db_path = "".to_string();
+        if config.duplicates_database {
             duplicate_db_path = format!("{}_dupes.sqlite", db_path.trim_end_matches(".sqlite"));
             fs::copy(&db_path, &duplicate_db_path)?;    
         }
 
-        let target_db_path = if unsafe_mode {
+        let target_db_path = if config.unsafe_mode {
             db_path.clone()
         } else {
             let new_db_path = format!("{}_thinned.sqlite", db_path.trim_end_matches(".sqlite"));
@@ -531,20 +511,20 @@ fn main() -> Result<(), Box<dyn Error>> {
         };
 
         let mut total: usize = 0;
-        if let Some(compare_db_path) = compare_db {
+        if let Some(compare_db_path) = config.compare_db {
             if !Path::new(&compare_db_path).exists() {
                 println!("Error: Compare database {} does not exist.", compare_db_path);
                 return Ok(());
             }
-            total += compare_duplicates(&compare_db_path, &target_db_path, just_say_yes)?;
+            total += compare_duplicates(&compare_db_path, &target_db_path, config.no_prompt)?;
         }
 
-        if !no_filename_check {
-            total += remove_duplicates(&target_db_path, just_say_yes, verbose)?;
+        if !config.skip_filename_check {
+            total += remove_duplicates(&target_db_path, config.no_prompt, config.verbose)?;
         }
 
-        if prune_tags_flag {
-            total += prune_tags(&target_db_path, "SMDupe_tags.txt", just_say_yes, verbose)?;
+        if config.prune_tags_flag {
+            total += prune_tags(&target_db_path, "SMDupe_tags.txt", config.no_prompt, config.verbose)?;
         }
         if total > 0 {
             
@@ -555,17 +535,40 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         }
 
-
-        if duplicates_database {
-            println!("Generating Duplicates Only Database (this can be slow if your database is huge)");
-            let _ = remove_matching_rows(&duplicate_db_path, &target_db_path)?;
-            // let _ = compare_duplicates(&target_db_path, &duplicate_db_path, true)?;
+        if config.duplicates_database {
+            let _ = filter_duplicates_database(&duplicate_db_path, &target_db_path, total, config.no_prompt);
         }
     } else {
         print_help();
     }
 
     Ok(())
+}
+
+fn filter_duplicates_database(duplicate_db_path: &String, target_db_path: &String, total: usize, no_prompt: bool) -> Result<(), Box<dyn std::error::Error>>  {
+    if total == 0 {
+        fs::remove_file(duplicate_db_path)?;
+        println!("No Duplicates were Removed.  Skipping Create Duplicates Database");
+        return Ok(());
+    }
+        
+    if !no_prompt {
+        println!("Proceed with Generating Duplicates Only Database? (this can be slow if your database is huge)");
+        let mut user_input = String::new();
+        io::stdin().read_line(&mut user_input).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e)))?;
+        let user_input = user_input.trim().to_lowercase();
+        
+        if user_input != "yes" {
+            println!("Aborted");
+            return Ok(());
+        }
+    }
+    
+    println!("Generating Duplicates Only Database. Please be Patient.");
+    let _ = remove_matching_rows(&duplicate_db_path, &target_db_path)?;
+
+    Ok(())
+
 }
 
 
