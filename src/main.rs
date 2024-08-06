@@ -460,36 +460,35 @@ fn remove_matching_rows(dupe_db_path: &str, processed_db_path: &str) -> Result<(
     Ok(())
 }
 
+
+fn generate_config_files() -> Result<()> {
+    // Generate SMDupe_order.txt and SMDupe_tags.txt with default values
+    let order_file_path = "SMDupe_order.txt";
+
+    let mut order_file = File::create(order_file_path).unwrap();
+    writeln!(order_file, "## Column in order of Priority and whether it should be DESCending or ASCending.  Hashtag will bypass");
+    for field in &DEFAULT_ORDER {
+        writeln!(order_file, "{}", field)?;
+    }
+
+    println!("Created {} with default order.", order_file_path);
+
+    let tags_file_path = "SMDupe_tags.txt";
+
+    let mut tags_file = File::create(tags_file_path);
+    for tag in DEFAULT_TAGS {
+        writeln!(tags_file, "{}", tag)?;
+    }
+
+    println!("Created {} with default tags.", tags_file_path);
+        return Ok(());
+}
+
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
     let config = Config::new(&args)?;
 
-    if config.generate_config_files {
-        // Generate SMDupe_order.txt and SMDupe_tags.txt with default values
-        let order_file_path = "SMDupe_order.txt";
-
-        let mut order_file = File::create(order_file_path)?;
-        writeln!(order_file, "## Column in order of Priority and whether it should be DESCending or ASCending.  Hashtag will bypass")?;
-        for field in &DEFAULT_ORDER {
-            writeln!(order_file, "{}", field)?;
-        }
-
-        println!("Created {} with default order.", order_file_path);
-
-        let tags_file_path = "SMDupe_tags.txt";
-
-        let mut tags_file = File::create(tags_file_path)?;
-        for tag in DEFAULT_TAGS {
-            writeln!(tags_file, "{}", tag)?;
-        }
-
-        println!("Created {} with default tags.", tags_file_path);
-
-        // Exit if no other arguments
-        if config.primary_db.is_none() && config.compare_db.is_none() {
-            return Ok(());
-        }
-    }
 
     if let Some(db_path) = config.primary_db {
         if !Path::new(&db_path).exists() {
