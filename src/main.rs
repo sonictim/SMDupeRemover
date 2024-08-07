@@ -27,34 +27,34 @@ const DEFAULT_TAGS: [&str; 29] = [
 
 #[derive(Debug)]
 struct Config {
-    generate_config_files: bool,
     primary_db: Option<String>,
-    prune_tags_flag: bool,
-    skip_filename_check: bool,
     compare_db: Option<String>,
+    duplicate_db: Option<String>,
+    prune_tags: bool,
+    skip_filename_check: bool,
     unsafe_mode: bool,
     no_prompt: bool,
-    duplicates_database: bool,
     verbose: bool,
 }
 
 impl Config {
     fn new(args: &[String]) -> Result<Config, &'static str> {
-        let mut generate_config_files = false;
         let mut primary_db: Option<String> = None;
-        let mut prune_tags_flag = false;
-        let mut skip_filename_check = false;
         let mut compare_db: Option<String> = None;
+        let mut duplicate_db: Option<String> = None;
+        let mut prune_tags = false;
+        let mut skip_filename_check = false;
         let mut unsafe_mode = false;
         let mut no_prompt = false;
-        let mut duplicates_database = false;
         let mut verbose = false;
+
+        let mut create_dup_db = false;
 
         let mut i = 1;
         while i < args.len() {
             match args[i].as_str() {
-                "--generate-config-files" => generate_config_files = true,
-                "--prune-tags" => prune_tags_flag = true,
+                "--generate-config-files" => generate_config_files(),
+                "--prune-tags" => prune_tags = true,
                 "--no-filename-check" => skip_filename_check = true,
                 "--compare" => {
                     if i + 1 < args.len() {
@@ -70,7 +70,7 @@ impl Config {
                     unsafe_mode = true;
                     no_prompt = true;
                 },
-                "--create-duplicates-database" => duplicates_database = true,
+                "--create-duplicates-database" => create_dup_db = true,
                 "--verbose" => verbose = true,
                 "--help" => {
                     print_help();
@@ -80,15 +80,15 @@ impl Config {
                     if args[i].starts_with('-') && !args[i].starts_with("--") {
                         for c in args[i][1..].chars() {
                             match c {
-                                'g' => generate_config_files = true,
-                                't' => prune_tags_flag = true,
+                                'g' => generate_config_files(),
+                                't' => prune_tags = true,
                                 'n' => skip_filename_check = true,
                                 'y' => no_prompt = true,
                                 'u' => {
                                     unsafe_mode = true;
                                     no_prompt = true;
                                 },
-                                'd' => duplicates_database = true,
+                                'd' => create_dup_db = true,
                                 'v' => verbose = true,
                                 'h' => {
                                     print_help();
@@ -113,6 +113,11 @@ impl Config {
                     } else {
                         if primary_db.is_none() {
                             primary_db = Some(args[i].clone());
+                            if !Path::new(&primary_db.clone().unwrap()).exists() {
+                                println!("Error: Primary database {} does not exist.", primary_db.unwrap());
+                                return Err("Primary DB does not exist");
+                            }    
+
                         } else {
                             print_help();
                             return Err("Multiple primary databases specified");
@@ -123,20 +128,38 @@ impl Config {
             i += 1;
         }
 
+        if primary_db.is_none() {
+            print_help();
+            return Err("No Primary Database Specified");
+        }
+
+        if create_dup_db {
+            duplicate_db = Some(format!("{}_dupes.sqlite", primary_db.clone().unwrap().trim_end_matches(".sqlite")));
+        }
+
+
+
+
         Ok(Config {
-            generate_config_files,
             primary_db,
-            prune_tags_flag,
-            skip_filename_check,
             compare_db,
+            duplicate_db,
+            prune_tags,
+            skip_filename_check,
             unsafe_mode,
             no_prompt,
-            duplicates_database,
             verbose,
         })
     }
 }
 
+fn check_validity(path: &str) -> Result<(), Box<dyn Error>> {
+    if Path::new(path).exists() {
+        Ok(())
+    } else {
+        Err("Invalid file path".into())
+    }
+}
 
 
 fn fetch_filenames(conn: &Connection) -> Result<HashSet<String>> {
@@ -461,34 +484,25 @@ fn remove_matching_rows(dupe_db_path: &str, processed_db_path: &str) -> Result<(
 }
 
 
-fn generate_config_files() -> Result<()> {
-    // Generate SMDupe_order.txt and SMDupe_tags.txt with default values
-    let order_file_path = "SMDupe_order.txt";
-
-    let mut order_file = File::create(order_file_path).unwrap();
-    writeln!(order_file, "## Column in order of Priority and whether it should be DESCending or ASCending.  Hashtag will bypass");
-    for field in &DEFAULT_ORDER {
-        writeln!(order_file, "{}", field)?;
-    }
-
-    println!("Created {} with default order.", order_file_path);
-
-    let tags_file_path = "SMDupe_tags.txt";
-
-    let mut tags_file = File::create(tags_file_path);
-    for tag in DEFAULT_TAGS {
-        writeln!(tags_file, "{}", tag)?;
-    }
-
-    println!("Created {} with default tags.", tags_file_path);
-        return Ok(());
-}
 
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
     let config = Config::new(&args)?;
 
+    //INITIALIZE DEFAULT VALUES
+
+    //PARSE ARGUMENTS
+
+    // VALIDATE FILE PATHS
+
+    // CHECK CONFIG FILES
+
+    // CREATE DBs and OPEN THEM
+
+    // CHECK FOR DUPLICATES
+
+    //CLOSE DATABASES
 
     if let Some(db_path) = config.primary_db {
         if !Path::new(&db_path).exists() {
@@ -496,7 +510,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             return Ok(());
         }
         let mut duplicate_db_path = "".to_string();
-        if config.duplicates_database {
+        if config.duplicate_db != None {
             duplicate_db_path = format!("{}_dupes.sqlite", db_path.trim_end_matches(".sqlite"));
             fs::copy(&db_path, &duplicate_db_path)?;    
         }
@@ -522,7 +536,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             total += remove_duplicates(&target_db_path, config.no_prompt, config.verbose)?;
         }
 
-        if config.prune_tags_flag {
+        if config.prune_tags {
             total += prune_tags(&target_db_path, "SMDupe_tags.txt", config.no_prompt, config.verbose)?;
         }
         if total > 0 {
@@ -534,7 +548,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         }
 
-        if config.duplicates_database {
+        if config.duplicate_db != None {
             let _ = filter_duplicates_database(&duplicate_db_path, &target_db_path, total, config.no_prompt);
         }
     } else {
@@ -607,4 +621,26 @@ Description:
     println!("{}", help_message);
 }
 
+fn generate_config_files() {
+    // Generate SMDupe_order.txt and SMDupe_tags.txt with default values
+    let order_file_path = "SMDupe_order.txt";
+
+    let mut order_file = File::create(order_file_path).unwrap();
+    writeln!(order_file, "## Column in order of Priority and whether it should be DESCending or ASCending.  Hashtag will bypass");
+    for field in &DEFAULT_ORDER {
+        writeln!(order_file, "{}", field).unwrap();
+    }
+
+    println!("Created {} with default order.", order_file_path);
+
+    let tags_file_path = "SMDupe_tags.txt";
+
+    let mut tags_file = File::create(tags_file_path).unwrap();
+    for tag in DEFAULT_TAGS {
+        writeln!(tags_file, "{}", tag).unwrap();
+    }
+
+    println!("Created {} with default tags.", tags_file_path);
+        // return Ok(());
+}
 
