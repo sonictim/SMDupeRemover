@@ -20,3 +20,5 @@ Cargo.lock
 *.tmp
 
 *.sync*
+
+Mac\ Universal\ Binary/
