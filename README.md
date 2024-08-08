@@ -20,7 +20,7 @@ The Program runs in the following order if all optional flags are enabled:
 
 ## ARGUMENTS:
 
-#### `-g or --generate-config-files`
+#### `--generate-config-files`
 generates SMDupe_tags.txt and SMDupe_order.txt. SMDupe_order.txt defines how the main duplicate checker decides which file to keep.  this will overwrite what's there with the default values if they already exist in the directory.  I suggest running once and then modifying from there if you like.  Without these files, the program will just do the default order/tags I have pre programmed in the program.
 
 #### `-c or --compare <database2>`
@@ -31,6 +31,14 @@ looks for common Protools Processing Tags and removes files with them.  can use 
 
 #### `-n or --no-filename-check`
 this doesn't run the normal duplicate filename check on the database.  Useful if you want to just remove tags or compare with another database only.
+
+#### `-g or --group <column>`
+Groups records by the specified column and then searches for duplicates within each group.  If the column data is NULL, those files will be skipped.
+you can also specify `--group-null` and all NULL column data will be put into it's own group and searched for duplicates within this group.
+This will override the -s and -l flags.
+
+#### `-s or --group-by-show and -l or --group-by-library`
+same as above but specifies either the show or library column.  Null entries are ignored.  use '--group-null show' to override. 
 
 #### `-d or --create-duplicates-database`
 after processing the database it will generate a new database containing all the deletions that were made
