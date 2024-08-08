@@ -44,8 +44,10 @@ fn delete_filenames(conn: &mut Connection, filenames: &HashSet<String>) -> Resul
     let filename_vec: Vec<String> = filenames.iter().cloned().collect();
     
     // Split the filenames into batches if necessary
-    const BATCH_SIZE: usize = 1000;
+    const BATCH_SIZE: usize = 10000;
     for chunk in filename_vec.chunks(BATCH_SIZE) {
+        let _ = io::stdout().flush();
+        print!(".");
         let placeholders: Vec<String> = chunk.iter().map(|_| "?".to_string()).collect();
         let query = format!(
             "DELETE FROM justinmetadata WHERE filename IN ({})",
@@ -58,6 +60,7 @@ fn delete_filenames(conn: &mut Connection, filenames: &HashSet<String>) -> Resul
         // Pass the parameters to `tx.execute`
         tx.execute(&query, params.as_slice())?;
     }
+    println!("");
     
     tx.commit()?;
 
@@ -172,7 +175,7 @@ fn remove_duplicates(db_path: &str, unsafe_mode: bool, verbose: bool, group: &st
         rows.filter_map(Result::ok).collect()
     }; // stmt is dropped here
     ids_to_delete.sort_by(|a, b| b.0.cmp(&a.0));
-    let mut total = ids_to_delete.len();
+    let total = ids_to_delete.len();
 
     if total == 0 {
         println!("ALL FILENAMES are UNIQUE! in {}", db_path);
@@ -183,9 +186,21 @@ fn remove_duplicates(db_path: &str, unsafe_mode: bool, verbose: bool, group: &st
     let (width, _) = terminal_size().unwrap_or((Width(80), terminal_size::Height(0)));
     let line_width = width.0 as usize;
 
-    if unsafe_mode {
+
+    
         if group != "" {println!("Grouping by {}", group)};
-        println!("Found {} Duplicate Filenames. Proceeding with deletion.", total);
+        println!("Found {} Duplicate Filenames.", total);
+        if !unsafe_mode {
+            println!("Type 'yes' to remove them: ");
+            let mut user_input = String::new();
+            io::stdin().read_line(&mut user_input).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e)))?;
+            let user_input = user_input.trim().to_lowercase();
+
+            if user_input != "yes" {
+                println!("Aborted deletion.");
+                return Ok(0);
+            }
+        }
         // Delete the records that are not the best
         for (id, filename) in ids_to_delete {
             if verbose {print!("\r{}", " ".repeat(line_width)); print!("\rRemoving ID: {}, Filename: {}", id, filename); let _ = io::stdout().flush();}
@@ -193,28 +208,8 @@ fn remove_duplicates(db_path: &str, unsafe_mode: bool, verbose: bool, group: &st
         }
         tx.commit()?;
         // conn.execute("VACUUM", [])?;
-        println!("\nRemoved {} files from {}", total, db_path);
-    } else {
-        if group != "" {println!("Grouping by {}", group)};
-        println!("Found {} Duplicate Filenames. Type 'yes' to remove them: ", total);
-        let mut user_input = String::new();
-        io::stdin().read_line(&mut user_input).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e)))?;
-        let user_input = user_input.trim().to_lowercase();
-
-        if user_input == "yes" {
-            // Delete the records that are not the best
-            for (id, filename) in ids_to_delete {
-                if verbose {print!("\r{}", " ".repeat(line_width)); print!("\rRemoving ID: {}, Filename: {}", id, filename); let _ = io::stdout().flush();}
-                tx.execute("DELETE FROM justinmetadata WHERE rowid = ?", [id])?;
-            }
-            tx.commit()?;
-            // conn.execute("VACUUM", [])?;
-            println!("\nRemoved {} Entries from {}", total, db_path);
-        } else {
-            total = 0;
-            println!("Aborted deletion.");
-        }
-    }
+        println!("\nRemoved {} Entries from {}", total, db_path);
+    
 
     Ok(total)
 }
