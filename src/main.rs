@@ -5,6 +5,7 @@ use std::fs::{self, File};
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 use std::error::Error;
+use terminal_size::{Width, terminal_size};
 
 const DEFAULT_ORDER: [&str; 12] = [
     "CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC",
@@ -65,6 +66,7 @@ fn delete_filenames(conn: &mut Connection, filenames: &HashSet<String>) -> Resul
 
     Ok(())
 }
+
 
 fn compare_duplicates(compare_db: &str, target_db: &str, unsafe_mode: bool) -> Result<usize> {
     println!("Comparing filenames between {} and {}", target_db, compare_db);
@@ -177,17 +179,21 @@ fn remove_duplicates(db_path: &str, unsafe_mode: bool, verbose: bool, group: &st
         return Ok(0); // Exit the function early if no duplicates are found
     }
 
+    //Get Terminal Size Width for the verbose mode
+    let (width, _) = terminal_size().unwrap_or((Width(80), terminal_size::Height(0)));
+    let line_width = width.0 as usize;
+
     if unsafe_mode {
         if group != "" {println!("Grouping by {}", group)};
         println!("Found {} Duplicate Filenames. Proceeding with deletion.", total);
         // Delete the records that are not the best
         for (id, filename) in ids_to_delete {
-            if verbose {println!("Removing ID: {}, Filename: {}", id, filename);}
+            if verbose {print!("\r{}", " ".repeat(line_width)); print!("\rRemoving ID: {}, Filename: {}", id, filename); let _ = io::stdout().flush();}
             tx.execute("DELETE FROM justinmetadata WHERE rowid = ?", [id])?;
         }
         tx.commit()?;
         // conn.execute("VACUUM", [])?;
-        println!("Removed {} files from {}", total, db_path);
+        println!("\nRemoved {} files from {}", total, db_path);
     } else {
         if group != "" {println!("Grouping by {}", group)};
         println!("Found {} Duplicate Filenames. Type 'yes' to remove them: ", total);
@@ -198,12 +204,12 @@ fn remove_duplicates(db_path: &str, unsafe_mode: bool, verbose: bool, group: &st
         if user_input == "yes" {
             // Delete the records that are not the best
             for (id, filename) in ids_to_delete {
-                if verbose {println!("Removing ID: {}, Filename: {}", id, filename);}
+                if verbose {print!("\r{}", " ".repeat(line_width)); print!("\rRemoving ID: {}, Filename: {}", id, filename); let _ = io::stdout().flush();}
                 tx.execute("DELETE FROM justinmetadata WHERE rowid = ?", [id])?;
             }
             tx.commit()?;
             // conn.execute("VACUUM", [])?;
-            println!("Removed {} Entries from {}", total, db_path);
+            println!("\nRemoved {} Entries from {}", total, db_path);
         } else {
             total = 0;
             println!("Aborted deletion.");
@@ -332,9 +338,7 @@ fn remove_matching_rows(dupe_db_path: &str, processed_db_path: &str) -> Result<(
     let mut dupe_conn = Connection::open(dupe_db_path)?;
     let processed_conn = Connection::open(processed_db_path)?;
 
-    // Start a transaction on the _dupe database
-    let tx = dupe_conn.transaction()?;
-
+    
     // Get IDs of rows in the processed database
     let ids_to_remove: Vec<i64> = {
         let mut stmt = processed_conn.prepare("SELECT rowid FROM justinmetadata")?;
@@ -342,17 +346,10 @@ fn remove_matching_rows(dupe_db_path: &str, processed_db_path: &str) -> Result<(
         rows.filter_map(Result::ok).collect()
     };
 
-    // Delete matching rows in the _dupe database
-    {
-        let mut stmt = tx.prepare("DELETE FROM justinmetadata WHERE rowid = ?")?;
-        for id in ids_to_remove {
-            stmt.execute([id])?;
-        }
-    } // `stmt` is dropped here
+    delete_rows_in_batches(&mut dupe_conn, ids_to_remove)?;
 
-    tx.commit()?; // Commit the transaction
-    // dupe_conn.execute("VACUUM", [])?; // Execute VACUUM on the dupe connection
-
+    dupe_conn.execute("VACUUM", [])?; // Execute VACUUM on the dupe connection   
+ 
     // Get the count of remaining rows
     let remaining_count: usize = dupe_conn.query_row(
         "SELECT COUNT(*) FROM justinmetadata",
@@ -360,10 +357,37 @@ fn remove_matching_rows(dupe_db_path: &str, processed_db_path: &str) -> Result<(
         |row| row.get(0)
     )?;
 
-    println!("{} records moved to {}", remaining_count, dupe_db_path);
+    println!("\n{} records moved to {}", remaining_count, dupe_db_path);
 
     Ok(())
 }
+
+fn delete_rows_in_batches(conn: &mut Connection, ids_to_remove: Vec<i64>) -> Result<()> {
+    let tx = conn.transaction()?;
+
+    // Split the ids into batches if necessary
+    const BATCH_SIZE: usize = 10000;
+    for chunk in ids_to_remove.chunks(BATCH_SIZE) {
+        let _ = io::stdout().flush();
+        print!(".");
+        let placeholders: Vec<String> = chunk.iter().map(|_| "?".to_string()).collect();
+        let query = format!(
+            "DELETE FROM justinmetadata WHERE rowid IN ({})",
+            placeholders.join(", ")
+        );
+
+        // Convert the chunk to a Vec<&dyn rusqlite::types::ToSql>
+        let params: Vec<&dyn rusqlite::types::ToSql> = chunk.iter().map(|id| id as &dyn rusqlite::types::ToSql).collect();
+
+        // Pass the parameters to `tx.execute`
+        tx.execute(&query, params.as_slice())?;
+    }
+
+    tx.commit()?;
+
+    Ok(())
+}
+
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();

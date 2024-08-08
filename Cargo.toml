@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 rusqlite = "0.26.0"
+terminal_size = "0.1"
 
