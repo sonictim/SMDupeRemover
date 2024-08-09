@@ -1,19 +1,13 @@
-use rusqlite::{Connection, Result};
+use rusqlite::{Connection, Result, params};
 use std::collections::HashSet;
+use std::collections::HashMap;
 use std::env;
 use std::fs::{self, File};
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 use std::error::Error;
-use terminal_size::{Width, terminal_size};
 
-const DEFAULT_ORDER: [&str; 12] = [
-    "CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC",
-    "CASE WHEN pathname LIKE '%RECORD%' THEN 0 ELSE 1 END ASC",
-    "CASE WHEN pathname LIKE '%CREATED SFX%' THEN 0 ELSE 1 END ASC",
-    "CASE WHEN pathname LIKE '%CREATED FX%' THEN 0 ELSE 1 END ASC",
-    "CASE WHEN pathname LIKE '%LIBRARY%' THEN 0 ELSE 1 END ASC",
-    "CASE WHEN pathname LIKE '%PULLS%' THEN 0 ELSE 1 END ASC",
+const DEFAULT_ORDER: [&str; 6] = [
     "duration DESC",
     "channels DESC",
     "sampleRate DESC",
@@ -34,71 +28,50 @@ const DEFAULT_TAGS: [&str; 29] = [
 
 #[derive(Debug)]
 struct Config {
+    // process_order: Vec<String>,
+    // tag_list: Vec<String>,
     primary_db: Option<String>,
     compare_db: Option<String>,
-    duplicate_db: bool,
-    skip_filename_check: bool,
-    group_sort: Option<String>,
-    group_null: bool,
+    duplicate_db: Option<String>,
     prune_tags: bool,
-    safe: bool,
-    prompt: bool,
+    skip_filename_check: bool,
+    unsafe_mode: bool,
+    no_prompt: bool,
     verbose: bool,
 }
 
 impl Config {
     fn new(args: &[String]) -> Result<Config, &'static str> {
-        let mut primary_db = None;
-        let mut compare_db = None;
-        let mut duplicate_db = false;
-        let mut skip_filename_check = false;
-        let mut group_sort = None;
-        let mut group_null = false;
+        let mut primary_db: Option<String> = None;
+        let mut compare_db: Option<String> = None;
+        let mut duplicate_db: Option<String> = None;
         let mut prune_tags = false;
-        let mut safe_mode = true;
-        let mut prompt = true;
+        let mut skip_filename_check = false;
+        let mut unsafe_mode = false;
+        let mut no_prompt = false;
         let mut verbose = false;
+
+        let mut create_dup_db = false;
 
         let mut i = 1;
         while i < args.len() {
-            match args[i] {
+            match args[i].as_str() {
                 "--generate-config-files" => generate_config_files(),
                 "--prune-tags" => prune_tags = true,
                 "--no-filename-check" => skip_filename_check = true,
-                "--group-by-show" | "-s" => group = Some("show"),
-                "--group-by-library" | "-l" => group = Some("library"),
-                "--group" => {
-                    if i + 1 < args.len() {
-                        group = args[i + 1].as_str();
-                        i += 1; // Skip the next argument since it's the database name
-                    } else {
-                        print_help();
-                        return Ok(());
-                    }
-                },
-                "--group-null" => {
-                    if i + 1 < args.len() {
-                        group = args[i + 1].as_str();
-                        i += 1; // Skip the next argument since it's the database name
-                        group_null = true;
-                    } else {
-                        print_help();
-                        return Ok(());
-                    }
-                },
                 "--compare" => {
                     if i + 1 < args.len() {
-                        compare_db = check_path(args[i + 1]);
+                        compare_db = Some(args[i + 1].clone());
                         i += 1; // Skip the next argument since it's the database name
                     } else {
                         print_help();
                         return Err("Missing database name for --compare");
                     }
                 },
-                "--no-prompt" | "--yes" => prompt = false,
+                "--no-prompt" | "--yes" => no_prompt = true,
                 "--unsafe" => {
-                    safe_mode = false;
-                    prompt = false;
+                    unsafe_mode = true;
+                    no_prompt = true;
                 },
                 "--create-duplicates-database" => create_dup_db = true,
                 "--verbose" => verbose = true,
@@ -110,29 +83,19 @@ impl Config {
                     if args[i].starts_with('-') && !args[i].starts_with("--") {
                         for c in args[i][1..].chars() {
                             match c {
-                                'g' => {
-                                    if i + 1 < args.len() {
-                                        group = args[i + 1].as_str();
-                                        i += 1; // Skip the next argument since it's the database name
-                                    } else {
-                                        print_help();
-                                        return Ok(());
-                                    }
-                                },
-                                't' => prune_tags_flag = true,
-                                'n' => no_filename_check = true,
-                                's' => group = Some("show"),
-                                'l' => group = Some("library"),
-                                'y' => just_say_yes = true,
+                                'g' => generate_config_files(),
+                                't' => prune_tags = true,
+                                'n' => skip_filename_check = true,
+                                'y' => no_prompt = true,
                                 'u' => {
                                     unsafe_mode = true;
-                                    just_say_yes = true;
+                                    no_prompt = true;
                                 },
-                                'd' => duplicates_database = true,
+                                'd' => create_dup_db = true,
                                 'v' => verbose = true,
                                 'h' => {
                                     print_help();
-                                    return Ok(());
+                                    return Err("Help requested");
                                 },
                                 'c' => {
                                     if i + 1 < args.len() {
@@ -140,7 +103,7 @@ impl Config {
                                         i += 1; // Skip the next argument since it's the database name
                                     } else {
                                         print_help();
-                                        return Ok(());
+                                        return Err("Missing database name for -c");
                                     }
                                 },
                                 _ => {
@@ -152,7 +115,7 @@ impl Config {
                         }
                     } else {
                         if primary_db.is_none() {
-                            primary_db = check_path(args[i]);
+                            primary_db = Some(args[i].clone());
 
                         } else {
                             print_help();
@@ -169,24 +132,37 @@ impl Config {
             return Err("No Primary Database Specified");
         }
 
+        if create_dup_db {
+            duplicate_db = Some(format!("{}_dupes.sqlite", primary_db.clone().unwrap().trim_end_matches(".sqlite")));
+        }
+
         Ok(Config {
             primary_db,
             compare_db,
             duplicate_db,
-            skip_filename_check,
-            group_sort,
-            group_null,
             prune_tags,
-            safe_mode,
-            prompt,
+            skip_filename_check,
+            unsafe_mode,
+            no_prompt,
             verbose,
         })
+    }
+   
+    fn validate(&self) -> Result<(), Box<dyn Error>> {
+        if let Some(path)  = &self.primary_db {
+            check_path_validity(&path)?;
+        }
+        if let Some(path) = &self.compare_db {
+            check_path_validity(&path)?;
+        }
+        Ok(())
+
     }
 }
 
 fn check_path(path: &str) -> Option<String> {
     if Path::new(path).exists() {
-        Some(path)
+        Some(path.to_string())
     } else {
         None
     }
@@ -332,7 +308,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let args: Vec<String> = env::args().collect();
     let config = Config::new(&args)?;
-
+    config.validate()?;
 
     println!("CREATE DBs and OPEN THEM");
     let mut primary_conn = Connection::open(config.primary_db.unwrap())?;
@@ -388,7 +364,7 @@ fn generate_config_files() {
     let order_file_path = "SMDupe_order.txt";
 
     let mut order_file = File::create(order_file_path).unwrap();
-    writeln!(order_file, "## Column in order of Priority and whether it should be DESCending or ASCending.  Hashtag will bypass")?;
+    let _ = writeln!(order_file, "## Column in order of Priority and whether it should be DESCending or ASCending.  Hashtag will bypass");
     for field in &DEFAULT_ORDER {
         writeln!(order_file, "{}", field).unwrap();
     }
