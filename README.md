@@ -12,10 +12,12 @@ The default comparison logic is explained below in configuration.
 
 You can also COMPARE two databases and remove any file in the main database that also exists in the comparison database.  
 
-You can also optionally have it scan for a series of characters (tags) and remove any files with them.  This is useful for finding all those -PiSH_ and -RVRS_ files protools generates.  There is an included default list, or you can create your own SMDupe_tags.txt.  Again --geneerate-config-files will create these files showing you the default list
+You can also optionally have it scan for a series of characters (tags) and remove any files with them.  This is useful for finding all those -PiSH_ and -RVRS_ files protools generates.  There is an included default list, or you can create your own SMDupe_tags.txt.  Again --generate-config-files will create these files showing you the default list
 
 The Program runs in the following order if all optional flags are enabled:  
   Compare Database, then Check For Duplicates in the main database, then Prune Tags.
+
+NOTE: This program only deals with the database files.  After running the program, you can then mirror your library to reflect the changes, or use the duplicates database in soundminer to delete files.
 
 
 ## ARGUMENTS:
