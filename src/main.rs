@@ -9,13 +9,7 @@ use std::error::Error;
 
 const BATCH_SIZE: usize = 10000;
 
-const DEFAULT_ORDER: [&str; 12] = [
-    "CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC",
-    "CASE WHEN pathname LIKE '%RECORD%' THEN 0 ELSE 1 END ASC",
-    "CASE WHEN pathname LIKE '%CREATED SFX%' THEN 0 ELSE 1 END ASC",
-    "CASE WHEN pathname LIKE '%CREATED FX%' THEN 0 ELSE 1 END ASC",
-    "CASE WHEN pathname LIKE '%LIBRARY%' THEN 0 ELSE 1 END ASC",
-    "CASE WHEN pathname LIKE '%PULLS%' THEN 0 ELSE 1 END ASC",
+const DEFAULT_ORDER: [&str; 6] = [
     "duration DESC",
     "channels DESC",
     "sampleRate DESC",
@@ -72,7 +66,8 @@ impl Config {
         let mut i = 1;
         while i < args.len() {
             match args[i].as_str() {
-                "--generate-config-files" => generate_config_files().unwrap(),
+                "--generate-config-files" => generate_config_files(false).unwrap(),
+                "--tjf" => generate_config_files(true).unwrap(),
                 "--prune-tags" => prune_tags = true,
                 "--no-filename-check" => filename_check = false,
                 "--group-by-show" | "-s" => group_sort = Some("show".to_string()),
@@ -218,7 +213,6 @@ fn get_order(file_path: &str) -> Result<Vec<String>, io::Error> {
             .map(|line| line.trim().to_string())
             .filter(|line| !line.is_empty() && !line.starts_with('#'))
             .collect();
-
         Ok(lines)
     } else {
         // If the file doesn't exist, return DEFAULT_ORDER
@@ -278,25 +272,6 @@ fn create_duplicates_db(source_db_path: &str, dupe_records_to_keep: &HashSet<Fil
     fs::copy(&source_db_path, &duplicate_db_path).unwrap();
     let mut dupe_conn = Connection::open(&duplicate_db_path)?;
     
-    // // Step 1: Collect the rowids of records to keep
-    // let keep_ids: HashSet<usize> = dupe_records_to_keep.iter().map(|record| record.id).collect();
-
-    // // Step 2: Convert the set to a comma-separated string of IDs for the SQL query
-    // let id_list: String = keep_ids.iter().map(|id| id.to_string()).collect::<Vec<_>>().join(",");
-
-    // // Step 3: Construct the DELETE query
-    // let query = format!("DELETE FROM justinmetadata WHERE rowid NOT IN ({})", id_list);
-
-    // // Step 4: Execute the DELETE query in a transaction for efficiency
-    // let tx = dupe_conn.transaction()?;
-    // tx.execute(&query, [])?;
-    // tx.commit()?;
-
-
-
-
-
-
     let mut dupe_records_to_delete = fetch_filerecords_from_database(&dupe_conn)?;
     dupe_records_to_delete.retain(|record| !dupe_records_to_keep.contains(record));
     
@@ -352,10 +327,13 @@ fn gather_compare_database_overlaps(target_conn: &Connection, compare_conn: &Con
     Ok(matching_records)
 }
 
-fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Option<String>, skip_null: bool) -> Result<HashSet<FileRecord>, rusqlite::Error> {
+fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Option<String>, skip_null: bool, verbose: bool) -> Result<HashSet<FileRecord>, rusqlite::Error> {
     println!("Searching {} for duplicate records", get_connection_source_filepath(&conn));
     let mut file_records = HashSet::new();
     let order = get_order(ORDER_FILE_PATH).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e)))?;
+    if verbose {
+        for line in &order {println!("{}", line);}
+    }
 
     // Construct the ORDER BY clause dynamically
     let order_clause = order.join(", ");
@@ -508,7 +486,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if config.filename_check {
-        let ids_from_duplicates = gather_duplicate_filenames_in_database(&mut conn, &config.group_sort, config.group_null)?;
+        let ids_from_duplicates = gather_duplicate_filenames_in_database(&mut conn, &config.group_sort, config.group_null, config.verbose)?;
         all_ids_to_delete.extend(ids_from_duplicates);
     }
 
@@ -602,20 +580,63 @@ Description:
     println!("{}", help_message);
 }
 
-fn generate_config_files() -> Result<()> {
-    let mut order_file = File::create(ORDER_FILE_PATH).unwrap();
-    writeln!(order_file, "## Column in order of Priority and whether it should be DESCending or ASCending.  Hashtag will bypass").unwrap();
-    for field in &DEFAULT_ORDER {
-        writeln!(order_file, "{}", field).unwrap();
+fn generate_config_files(tjf: bool) -> Result<()> {
+    if tjf {
+        create_tjf_order_file()?;
+    } else {
+        create_order_file()?;
     }
-    println!("Created {} with default order.", ORDER_FILE_PATH);
-
-
+    
     let mut tags_file = File::create(TAG_FILE_PATH).unwrap();
     for tag in DEFAULT_TAGS {
         writeln!(tags_file, "{}", tag).unwrap();
     }
     println!("Created {} with default tags.", TAG_FILE_PATH);
-    return Ok(());
+    Ok(())
 }
 
+
+fn create_order_file() -> Result<()> {
+    let mut order_file = File::create(ORDER_FILE_PATH).unwrap();
+    writeln!(order_file, "## Column in order of Priority and whether it should be DESCending or ASCending.  Hashtag will bypass").unwrap();
+    writeln!(order_file, "## These are SQL arguments and Google/ChatGPT can help you figure out how to compose them").unwrap();
+    writeln!(order_file, "## ").unwrap();
+    writeln!(order_file, "## Custom Examples:").unwrap();
+    writeln!(order_file, "## CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC").unwrap();
+    writeln!(order_file, "## ^----- Records with Audio Files in the path will be removed over something that does not have it.").unwrap();
+    writeln!(order_file, "## CASE WHEN pathname LIKE '%RECORD%' THEN 0 ELSE 1 END ASC").unwrap();
+    writeln!(order_file, "## ^----- Records with RECORD (not case sensitive) in the path will be kept over records without").unwrap();
+    writeln!(order_file, "## ").unwrap();
+    writeln!(order_file, "").unwrap();
+    for field in &DEFAULT_ORDER {
+        writeln!(order_file, "{}", field).unwrap();
+    }
+    println!("Created {} with default order.", ORDER_FILE_PATH);
+    Ok(())
+    
+}
+
+fn create_tjf_order_file() -> Result<()> {
+    let mut order_file = File::create(ORDER_FILE_PATH).unwrap();
+    for field in &TJF_DEFAULT_ORDER {
+        writeln!(order_file, "{}", field).unwrap();
+    }
+    println!("Created {} with TJF default order.", ORDER_FILE_PATH);
+    Ok(())
+}
+
+
+const TJF_DEFAULT_ORDER: [&str; 12] = [
+    "CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC",
+    "CASE WHEN pathname LIKE '%RECORD%' THEN 0 ELSE 1 END ASC",
+    "CASE WHEN pathname LIKE '%CREATED SFX%' THEN 0 ELSE 1 END ASC",
+    "CASE WHEN pathname LIKE '%CREATED FX%' THEN 0 ELSE 1 END ASC",
+    "CASE WHEN pathname LIKE '%LIBRARY%' THEN 0 ELSE 1 END ASC",
+    "CASE WHEN pathname LIKE '%PULLS%' THEN 0 ELSE 1 END ASC",
+    "duration DESC",
+    "channels DESC",
+    "sampleRate DESC",
+    "bitDepth DESC",
+    "BWDate ASC",
+    "scannedDate ASC",
+];
