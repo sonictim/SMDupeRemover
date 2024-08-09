@@ -643,18 +643,29 @@ fn main() -> Result<(), Box<dyn Error>> {
     fs::copy(&source_db_path, &work_db_path)?;
      
     let mut total = 0;
+    let mut all_ids_to_delete = HashSet<FileRecord>::new();
 
     if let Some(compare_db_path) = config.compare_db {
-        total += compare_databases(&work_db_path, &compare_db_path, config.prompt)?;
+        let ids_from_compare_db = compare_databases2(&work_db_path, &compare_db_path)?;
+        all_ids_to_delete.extend(ids_from_compare_db);
     }
 
     if config.filename_check {
-        total += remove_duplicate_filenames_from_database(&work_db_path, config.prompt, config.verbose, &config.group_sort, config.group_null )?;
+        let ids_from_duplicates = remove_duplicate_filenames_from_database(&target_db, false, verbose, &group_sort, skip_null)?;
+        all_ids_to_delete.extend(ids_from_duplicates);
     }
 
-    if config.prune_tags {
-        total += remove_filesnames_with_tags_from_database(&work_db_path, config.prompt, config.verbose)?;
-    }
+    // if let Some(compare_db_path) = config.compare_db {
+    //     total += compare_databases(&work_db_path, &compare_db_path, config.prompt)?;
+    // }
+
+    // if config.filename_check {
+    //     total += remove_duplicate_filenames_from_database(&work_db_path, config.prompt, config.verbose, &config.group_sort, config.group_null )?;
+    // }
+
+    // if config.prune_tags {
+    //     total += remove_filesnames_with_tags_from_database(&work_db_path, config.prompt, config.verbose)?;
+    // }
 
     if total > 0 {
         vacuum_db(&work_db_path)?;
