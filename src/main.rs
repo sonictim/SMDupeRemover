@@ -31,12 +31,39 @@ const DEFAULT_TAGS: [&str; 29] = [
     "-AVrT_", "-RING_"
 ];
 
-// #[derive(Debug)]
-// struct Id {
-//     row: usize,
-//     filename: String,
-// }
+#[derive(Hash, Eq, PartialEq, Debug)]
+struct FileRecord {
+    id: usize,
+    filename: String,
+}
 
+fn delete_file_records(conn: &mut Connection, records: &HashSet<FileRecord>, verbose: bool) -> Result<()> {
+    let tx = conn.transaction()?;
+
+    let mut sorted_records: Vec<_> = records.iter().collect();
+    sorted_records.sort_by(|a, b| b.id.cmp(&a.id));  // Sort by ID in descending order
+
+    sorted_records
+        .chunks(BATCH_SIZE)
+        .try_for_each(|chunk| {
+            if verbose {
+                for record in chunk {
+                    println!("\rDeleting ID: {}, Filename: {}", record.id, record.filename);
+                }
+            } else {
+                let _ = io::stdout().flush();
+                print!(".");
+            }
+            let placeholders = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+            let query = format!("DELETE FROM justinmetadata WHERE rowid IN ({})", placeholders);
+            let params: Vec<&dyn rusqlite::types::ToSql> = chunk.iter().map(|record| &(record.id) as &dyn rusqlite::types::ToSql).collect();
+            tx.execute(&query, params.as_slice()).map(|_| ())
+    })?;
+
+    tx.commit()?;
+
+    Ok(())
+}
 
 #[derive(Debug)]
 struct Config {
