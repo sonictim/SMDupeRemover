@@ -1,10 +1,11 @@
 [package]
 name = "SMDupeRemover"
-version = "0.1.1"
+version = "0.1.4"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 rusqlite = "0.26.0"
+terminal_size = "0.1"
 
