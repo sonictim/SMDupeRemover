@@ -5,7 +5,7 @@ use std::fs::{self, File};
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 use std::error::Error;
-use terminal_size::{Width, terminal_size};
+// use terminal_size::{Width, terminal_size};
 
 const BATCH_SIZE: usize = 10000;
 
@@ -31,12 +31,16 @@ const DEFAULT_TAGS: [&str; 29] = [
     "-AVrT_", "-RING_"
 ];
 
+const ORDER_FILE_PATH: &str = "SMDupe_Order.txt";
+const TAG_FILE_PATH: &str = "SMDupe_tags.txt";
+
+
+
 #[derive(Hash, Eq, PartialEq, Clone, Debug)]
 struct FileRecord {
     id: usize,
     filename: String,
 }
-
 
 #[derive(Debug)]
 struct Config {
@@ -199,18 +203,8 @@ fn check_path(path: &str) -> Option<String> {
 
 }
  
- fn get_db_size(conn: &Connection,) -> usize {
 
-     // Get the count of remaining rows
-      let count: usize = conn.query_row(
-          "SELECT COUNT(*) FROM justinmetadata",
-          [],
-          |row| row.get(0)
-      ).unwrap();
-      count
- }
-
-
+// GET FUNCTIONS
 fn get_order(file_path: &str) -> Result<Vec<String>, io::Error> {
     println!("Determining logic for which record to keep");
     let path = Path::new(file_path);
@@ -264,73 +258,58 @@ fn get_connection_source_filepath(conn: &Connection) -> String {
     path_str
 }
 
+fn get_db_size(conn: &Connection,) -> usize {
 
-// DUPLICATES DATABASE SECTION
-fn delete_rows_in_batches(conn: &mut Connection, ids_to_remove: Vec<i64>) -> Result<()> {
-    let tx = conn.transaction()?;
-
-    // Split the ids into batches if necessary
-    const BATCH_SIZE: usize = 10000;
-    for chunk in ids_to_remove.chunks(BATCH_SIZE) {
-        let _ = io::stdout().flush();
-        print!(".");
-        let placeholders: Vec<String> = chunk.iter().map(|_| "?".to_string()).collect();
-        let query = format!(
-            "DELETE FROM justinmetadata WHERE rowid IN ({})",
-            placeholders.join(", ")
-        );
-
-        // Convert the chunk to a Vec<&dyn rusqlite::types::ToSql>
-        let params: Vec<&dyn rusqlite::types::ToSql> = chunk.iter().map(|id| id as &dyn rusqlite::types::ToSql).collect();
-
-        // Pass the parameters to `tx.execute`
-        tx.execute(&query, params.as_slice())?;
-    }
-
-    tx.commit()?;
-
-    Ok(())
+    // Get the count of remaining rows
+     let count: usize = conn.query_row(
+         "SELECT COUNT(*) FROM justinmetadata",
+         [],
+         |row| row.get(0)
+     ).unwrap();
+     count
 }
 
-fn create_duplicates_db(db_path: &str, processed_conn: &Connection, _verbose: bool) -> Result<()> {
-    println!("Generating Duplicates Only Database (this can be slow if your database is huge)");
-    let duplicate_db_path = format!("{}_dupes.sqlite", &db_path.trim_end_matches(".sqlite"));
-    fs::copy(&db_path, &duplicate_db_path).unwrap();
+
+
+// DUPLICATES DB
+fn create_duplicates_db(source_db_path: &str, dupe_records_to_keep: &HashSet<FileRecord>) -> Result<()> {
+    println!("Generating Duplicates Only Database.  This can take awhile.");
+    let duplicate_db_path = format!("{}_dupes.sqlite", &source_db_path.trim_end_matches(".sqlite"));
+    fs::copy(&source_db_path, &duplicate_db_path).unwrap();
     let mut dupe_conn = Connection::open(&duplicate_db_path)?;
     
-    // Get IDs of rows in the processed database
-    let ids_to_remove: Vec<i64> = {
-        let mut stmt = processed_conn.prepare("SELECT rowid FROM justinmetadata")?;
-        let rows = stmt.query_map([], |row| row.get(0))?;
-        rows.filter_map(Result::ok).collect()
-    };
+    // // Step 1: Collect the rowids of records to keep
+    // let keep_ids: HashSet<usize> = dupe_records_to_keep.iter().map(|record| record.id).collect();
 
-    // if verbose { delete_rows(&mut dupe_conn, ids_to_remove, false)?;
-    // } else {
-        delete_rows_in_batches(&mut dupe_conn, ids_to_remove)?;
-    // }
+    // // Step 2: Convert the set to a comma-separated string of IDs for the SQL query
+    // let id_list: String = keep_ids.iter().map(|id| id.to_string()).collect::<Vec<_>>().join(",");
 
-    dupe_conn.execute("VACUUM", [])?; // Execute VACUUM on the dupe connection   
- 
-    // Get the count of remaining rows
-    let remaining_count: usize = get_db_size(&dupe_conn);
+    // // Step 3: Construct the DELETE query
+    // let query = format!("DELETE FROM justinmetadata WHERE rowid NOT IN ({})", id_list);
 
-    println!("\n{} records moved to {}", remaining_count, duplicate_db_path);
+    // // Step 4: Execute the DELETE query in a transaction for efficiency
+    // let tx = dupe_conn.transaction()?;
+    // tx.execute(&query, [])?;
+    // tx.commit()?;
+
+
+
+
+
+
+    let mut dupe_records_to_delete = fetch_filerecords_from_database(&dupe_conn)?;
+    dupe_records_to_delete.retain(|record| !dupe_records_to_keep.contains(record));
+    
+    delete_file_records(&mut dupe_conn, &dupe_records_to_delete, false)?;
+    vacuum_db(&dupe_conn)?;
+
+    println!("\n{} records moved to {}", get_db_size(&dupe_conn), duplicate_db_path);
 
     Ok(())
 }
-//END DUPES SECTION
-
-// fn fetch_filenames(conn: &Connection) -> Result<HashSet<String>> {
-//     println!("Gathering records from {}", get_connection_source_filepath(&conn));
-//     let mut stmt = conn.prepare("SELECT filename FROM justinmetadata")?;
-//     let filenames: HashSet<String> = stmt.query_map([], |row| row.get(0))?
-//         .filter_map(Result::ok)
-//         .collect();
-//     Ok(filenames)
-// }
 
 
+//FETCH FUNCTIONS
 fn fetch_filerecords_from_database(conn: &Connection) -> Result<HashSet<FileRecord>> {
     println!("Gathering records from {}", get_connection_source_filepath(&conn));
     let mut stmt = conn.prepare("SELECT rowid, filename FROM justinmetadata")?;
@@ -350,7 +329,7 @@ fn extract_filenames_set_from_records(file_records: &HashSet<FileRecord>) -> Has
     file_records.iter().map(|record| record.filename.clone()).collect()
 }
 
-// Function to gather overlapping file records
+// GATHER FUNCTIONS
 fn gather_compare_database_overlaps(target_conn: &Connection, compare_conn: &Connection) -> Result<HashSet<FileRecord>> {
     
     let compare_records = fetch_filerecords_from_database(&compare_conn)?;
@@ -376,8 +355,7 @@ fn gather_compare_database_overlaps(target_conn: &Connection, compare_conn: &Con
 fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Option<String>, skip_null: bool) -> Result<HashSet<FileRecord>, rusqlite::Error> {
     println!("Searching {} for duplicate records", get_connection_source_filepath(&conn));
     let mut file_records = HashSet::new();
-    let order_file = "SMDupe_order.txt";
-    let order = get_order(order_file).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e)))?;
+    let order = get_order(ORDER_FILE_PATH).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e)))?;
 
     // Construct the ORDER BY clause dynamically
     let order_clause = order.join(", ");
@@ -449,8 +427,9 @@ fn gather_filenames_with_tags(conn: &mut Connection, verbose: bool) -> Result<Ha
     println!("Searching {} for filenames containing tags", get_connection_source_filepath(&conn));
     let mut file_records = HashSet::new();
     let mut processed_files = HashSet::new();
-    let tags = get_tags("SMDupe_tags.txt")?;
+    let tags = get_tags("TAG_FILE_PATH")?;
 
+    let mut tags_found: usize = 0;
     for tag in tags {
         let query = format!("SELECT rowid, filename FROM justinmetadata WHERE filename LIKE '%' || ? || '%'");
         let mut stmt = conn.prepare(&query)?;
@@ -469,13 +448,16 @@ fn gather_filenames_with_tags(conn: &mut Connection, verbose: bool) -> Result<Ha
         }
 
         if verbose && !processed_files.is_empty() {
-            println!("Filenames found for tag '{}': {}", tag, processed_files.len());
+            println!("Filenames found for tag '{}': {}", tag, processed_files.len()-tags_found);
+            tags_found = processed_files.len();
         }
     }
-
+    println!("{} total records containing tags marked for deletion", file_records.len());
     Ok(file_records)
 }
 
+
+// DELETE FUNCTION
 fn delete_file_records(conn: &mut Connection, records: &HashSet<FileRecord>, verbose: bool) -> Result<()> {
     let tx = conn.transaction()?;
 
@@ -499,6 +481,7 @@ fn delete_file_records(conn: &mut Connection, records: &HashSet<FileRecord>, ver
             tx.execute(&query, params.as_slice()).map(|_| ())
     })?;
 
+    println!("");
     tx.commit()?;
 
     Ok(())
@@ -539,27 +522,30 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
+    print!("Found {} total records to delete. ", all_ids_to_delete.len());
     if config.prompt {
-        println!("Found {} files to delete. Type 'yes' to confirm deletion: ", all_ids_to_delete.len());
+        println!(" Type 'yes' to confirm deletion: ");
         let mut user_input = String::new();
         io::stdin().read_line(&mut user_input)?;
         if user_input.trim().to_lowercase() != "yes" {
             println!("Deletion aborted.");
             return Ok(());
         }
-    }   
+
+    } 
+    println!("Proceeding with deletion.");  
 
     // Perform deletion
     delete_file_records(&mut Connection::open(&work_db_path).unwrap(), &all_ids_to_delete, config.verbose)?;
     vacuum_db(&conn)?;
     println!("Removed {} records.", all_ids_to_delete.len());
 
-    if config.duplicate_db {
-        create_duplicates_db(&source_db_path, &Connection::open(&work_db_path).unwrap(), config.verbose)?;
+    if config.duplicate_db && all_ids_to_delete.len() > 0 {
+        create_duplicates_db(&source_db_path, &all_ids_to_delete)?;
     }
 
     if config.safe {
-        println!("Thinned records database moved to: {}", work_db_path);
+        println!("Original database intact.\nThinned records database moved to: {}", work_db_path);
     } else {    
         fs::copy(&work_db_path, &source_db_path)?;
         std::fs::remove_file(work_db_path)?;
@@ -617,25 +603,19 @@ Description:
 }
 
 fn generate_config_files() -> Result<()> {
-    // Generate SMDupe_order.txt and SMDupe_tags.txt with default values
-    let order_file_path = "SMDupe_order.txt";
-
-    let mut order_file = File::create(order_file_path).unwrap();
+    let mut order_file = File::create(ORDER_FILE_PATH).unwrap();
     writeln!(order_file, "## Column in order of Priority and whether it should be DESCending or ASCending.  Hashtag will bypass").unwrap();
     for field in &DEFAULT_ORDER {
         writeln!(order_file, "{}", field).unwrap();
     }
+    println!("Created {} with default order.", ORDER_FILE_PATH);
 
-    println!("Created {} with default order.", order_file_path);
 
-    let tags_file_path = "SMDupe_tags.txt";
-
-    let mut tags_file = File::create(tags_file_path).unwrap();
+    let mut tags_file = File::create(TAG_FILE_PATH).unwrap();
     for tag in DEFAULT_TAGS {
         writeln!(tags_file, "{}", tag).unwrap();
     }
-
-    println!("Created {} with default tags.", tags_file_path);
+    println!("Created {} with default tags.", TAG_FILE_PATH);
     return Ok(());
 }
 
