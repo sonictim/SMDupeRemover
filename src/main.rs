@@ -7,6 +7,8 @@ use std::path::Path;
 use std::error::Error;
 // use terminal_size::{Width, terminal_size};
 
+const VERSION: &str = "0.1.4";
+
 const BATCH_SIZE: usize = 10000;
 
 const DEFAULT_ORDER: [&str; 6] = [
@@ -62,12 +64,13 @@ impl Config {
         let mut safe = true;
         let mut prompt = true;
         let mut verbose = false;
+        let mut config_gen = false;
         
         let mut i = 1;
         while i < args.len() {
             match args[i].as_str() {
-                "--generate-config-files" => generate_config_files(false).unwrap(),
-                "--tjf" => generate_config_files(true).unwrap(),
+                "--generate-config-files" => {generate_config_files(false).unwrap(); config_gen = true;},
+                "--tjf" => {generate_config_files(true).unwrap(); config_gen = true;},
                 "--prune-tags" => prune_tags = true,
                 "--no-filename-check" => filename_check = false,
                 "--group-by-show" | "-s" => group_sort = Some("show".to_string()),
@@ -170,7 +173,7 @@ impl Config {
         }
 
         if target_db.is_none() {
-            print_help();
+            if !config_gen {print_help();}
             return Err("No Primary Database Specified");
         }
 
@@ -467,6 +470,7 @@ fn delete_file_records(conn: &mut Connection, records: &HashSet<FileRecord>, ver
 
 
 fn main() -> Result<(), Box<dyn Error>> {
+    println!("SMDupeRemover v{}", VERSION);
 
     let args: Vec<String> = env::args().collect();
     let config = Config::new(&args)?;
@@ -576,7 +580,7 @@ Description:
     SMDupeRemover is a tool for removing duplicate filename entries from a Soundminer database.
     It can generate configuration files, prune tags, and compare databases.
 ";
-
+    // println!("SMDupeRemover v{}\n", VERSION);
     println!("{}", help_message);
 }
 
