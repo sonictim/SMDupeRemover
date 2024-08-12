@@ -19,7 +19,7 @@ The Program runs in the following order if all optional flags are enabled:
 
 NOTE: This program only deals with the database files.  After running the program, you can then mirror your library to reflect the changes, or use the duplicates database in soundminer to delete files.
 
-##### I strongly suggest exploring the -s and -l flags when running this program
+#### I strongly suggest exploring the -s and -l flags when running this program
 
 
 ## ARGUMENTS:
