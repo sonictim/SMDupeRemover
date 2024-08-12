@@ -7,7 +7,7 @@ use std::path::Path;
 use std::error::Error;
 // use terminal_size::{Width, terminal_size};
 
-const VERSION: &str = "0.1.4";
+const VERSION: &str = "0.1.5";
 
 const BATCH_SIZE: usize = 10000;
 
@@ -127,6 +127,7 @@ impl Config {
                                         return Err("group argument missing");
                                     }
                                 },
+                                'i' => group_null = true,
                                 't' => prune_tags = true,
                                 'n' => filename_check = false,
                                 's' => group_sort = Some("show".to_string()),
@@ -330,7 +331,7 @@ fn gather_compare_database_overlaps(target_conn: &Connection, compare_conn: &Con
     Ok(matching_records)
 }
 
-fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Option<String>, skip_null: bool, verbose: bool) -> Result<HashSet<FileRecord>, rusqlite::Error> {
+fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Option<String>, group_null: bool, verbose: bool) -> Result<HashSet<FileRecord>, rusqlite::Error> {
     println!("Searching {} for duplicate records", get_connection_source_filepath(&conn));
     let mut file_records = HashSet::new();
     let order = get_order(ORDER_FILE_PATH).map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e)))?;
@@ -344,12 +345,12 @@ fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Op
     // Build the SQL query based on whether a group_sort is provided
     let sql = if let Some(group) = group_sort {
         println!("Grouping duplicate record search by {}", group);
-        let null_text = if skip_null {
+        let null_text = if group_null {
             println!("Records without a {} entry will be processed together.", group);
-            format!("WHERE {} IS NOT NULL AND {} != ''", group, group)
+            "".to_string()
         } else {
             println!("Records without a {} entry will be skipped.", group);
-            "".to_string()
+            format!("WHERE {} IS NOT NULL AND {} != ''", group, group)
         };
         format!(
             "
@@ -480,6 +481,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     fs::copy(&source_db_path, &work_db_path)?;
 
     let mut conn = Connection::open(&work_db_path)?; 
+    println!("{} Total Records fround in {}", get_db_size(&conn), source_db_path);
   
     let mut all_ids_to_delete = HashSet::<FileRecord>::new();
 
@@ -555,6 +557,7 @@ Options:
     -g, --group <column>              Search for Duplicates within the specified column groupings.  NULL column records skipped
         --group-null <column>         Search for Duplicates within the specified column groupings.  NULL column records processed together
     -h, --help                        Display this help message
+    -i,                               used in conjunction with -s or -l to include null grouping
     -l, --group-by-library            Search for duplicates within each Library. Untagged Library files skipped
     -n, --no-filename-check           Skips searching for filename duplicates in main database
     -s, --group-by-show               Search for duplicates within each show. Untagged Show files skipped
