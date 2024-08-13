@@ -5,11 +5,13 @@
 ##### THIS LITERALLY DELETES RECORDS FROM YOUR DATABASE, SO I ADVISE YOU NEVER USE IT UNLESS YOU ARE VERY CERTAIN
 
 ## INSTALLATION:
-DOWNLOAD: If you are a mac user, the compiled binary is found in the MAC UNIVERSAL BINARY folder.
+DOWNLOAD:
+If you are a mac user, the compiled binary is found in the MAC UNIVERSAL BINARY folder.
 I find it easiest to copy it to the same folder as your Soundminer Databases and run from there.
 If you don't know where those are, you probably shouldn't be running this program.
 
-BUILD: It's written in rust.  If you know how to build things in rust, then go nuts!
+BUILD:
+It's written in rust.  If you know how to build things in rust, then go nuts!
 I also made a little build script that helps me make the mac universal binary and copies the final program to my Soundminer Databases Folder.
 If you know how to build, then you should know how to update this to your needs
 
