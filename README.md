@@ -12,7 +12,7 @@ CLI STUFF:
 To run a program in a local directory you need to add './' So...  './SMDupeRemover'
 You may also need to make sure that it has executable permissions:  'chmod +x SMDupeRemover'
 
-## Usage: 
+## USAGE: 
     `SMDupeRemover <database> arguments`
 
 The main program will Copy your database to a new database with _thinned added for identification.  It will then scan the new database for identical filenames and then use logic to decide which one to keep.
