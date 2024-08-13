@@ -1,8 +1,8 @@
 # SMDupeRemover
  CLI tool to find and remove duplicate filenames in Soundminer SQLITE databases.  
 
-#### USE AT YOUR OWN RISK I OFFER NO SUPPORT OF ANY KIND
-#### THIS LITERALLY DELETES RECORDS FROM YOUR DATABASE, SO I ADVISE YOU NEVER USE IT UNLESS YOU ARE VERY CERTAIN
+##### USE AT YOUR OWN RISK I OFFER NO SUPPORT OF ANY KIND
+##### THIS LITERALLY DELETES RECORDS FROM YOUR DATABASE, SO I ADVISE YOU NEVER USE IT UNLESS YOU ARE VERY CERTAIN
 
 ## INSTALLATION:
 The compiled binary can run from anywhere, but I usually find it easiest to copy to the same folder as your Soundminer Databases.
