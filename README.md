@@ -95,7 +95,7 @@ Two examples of this are generated in the comments for you when you create this 
 ### `SMDupe_tags.txt`
 When processing audio files in protools, you can get lots of little tags added on to the end of filenames when creating this new media, but ultimately, it's a duplicate of something you already have in your library.  You can use SMDupe_tags.txt to designate what to look for and have removed from your library. You can designate any combination of characters you like.  I've put in a bunch I've found in my library as a default.  I suggest adding away.  I can also add more to the default you think I've missed.  Just send me a message.
 
-SMDupe_tags.txt will only be processed with the --prune-tags option
+SMDupe_tags.txt will only be processed with the --prune-tags (-t) option
 
 
 
