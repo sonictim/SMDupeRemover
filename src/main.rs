@@ -1,5 +1,7 @@
+#![allow(non_snake_case)]
 use rusqlite::{Connection, Result};
 use std::collections::HashSet;
+// use std::collections::HashMap;
 use std::env;
 use std::fs::{self, File};
 use std::io::{self, BufRead, Write};
@@ -9,7 +11,7 @@ use std::error::Error;
 
 const VERSION: &str = "0.1.6";
 
-const BATCH_SIZE: usize = 10;
+const BATCH_SIZE: usize = 10000;
 
 const DEFAULT_ORDER: [&str; 6] = [
     "duration DESC",
@@ -343,50 +345,49 @@ fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Op
     let order_clause = order.join(", ");
 
     // Build the SQL query based on whether a group_sort is provided
-    let sql = if let Some(group) = group_sort {
-        println!("Grouping duplicate record search by {}", group);
-        let null_text = if group_null {
-            println!("Records without a {} entry will be processed together.", group);
-            "".to_string()
-        } else {
-            println!("Records without a {} entry will be skipped.", group);
-            format!("WHERE {} IS NOT NULL AND {} != ''", group, group)
-        };
-        format!(
-            "
-            WITH ranked AS (
-                SELECT
-                    rowid AS id,
-                    filename,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY {}, filename
-                        ORDER BY {}
-                    ) as rn
-                FROM justinmetadata {}
-            )
-            SELECT id, filename FROM ranked WHERE rn > 1
-            ",
-            group, order_clause, null_text
-        )
-    } else {
-        format!(
-            "
-            WITH ranked AS (
-                SELECT
-                    rowid AS id,
-                    filename,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY filename
-                        ORDER BY {}
-                    ) as rn
-                FROM justinmetadata
-            )
-            SELECT id, filename FROM ranked WHERE rn > 1
-            ",
-            order_clause
-        )
+    let (partition_by, where_clause) = match group_sort {
+        Some(group) => {
+            println!("Grouping duplicate record search by {}", group);
+            
+            let where_clause = if group_null {
+                println!("Records without a {} entry will be processed together.", group);
+                String::new()
+            } else {
+                println!("Records without a {} entry will be skipped.", group);
+                format!("WHERE {} IS NOT NULL AND {} != ''", group, group)
+            };
+            
+            (format!("{}, filename", group), where_clause)
+        }
+        None => ("filename".to_string(), String::new()),
     };
+    
+    let sql = format!(
+        "
+        WITH ranked AS (
+            SELECT
+                rowid AS id,
+                filename,
+                ROW_NUMBER() OVER (
+                    PARTITION BY {}
+                    ORDER BY {}
+                ) as rn
+            FROM justinmetadata
+            {}
+        )
+        SELECT id, filename FROM ranked WHERE rn > 1
+        ",
+        partition_by, order_clause, where_clause
+    );
+    
 
+    if verbose {
+        let total_overlaps = count_total_duplicate_filenames(conn).unwrap();
+        let unique_filenames = count_unique_duplicate_filenames(conn).unwrap();
+        println!("SQL found {} duplicate records with {} unique filenames", total_overlaps, unique_filenames);
+        println!("{} records can be removed", total_overlaps - unique_filenames);
+        println!("Processing which filenames are best for removal");
+    }
     // Execute the query and gather the duplicates
     let mut stmt = conn.prepare(&sql)?;
     let rows = stmt.query_map([], |row| {
@@ -399,11 +400,11 @@ fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Op
     for file_record in rows {
         file_records.insert(file_record?);
     }
-
     println!("Marked {} duplicate records for deletion.", file_records.len());
 
     Ok(file_records)
 }
+
 
 fn gather_filenames_with_tags(conn: &mut Connection, verbose: bool) -> Result<HashSet<FileRecord>> {
     println!("Searching {} for filenames containing tags", get_connection_source_filepath(&conn));
@@ -493,6 +494,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if config.filename_check {
         let ids_from_duplicates = gather_duplicate_filenames_in_database(&mut conn, &config.group_sort, config.group_null, config.verbose)?;
+        // let ids_from_duplicates = gather_duplicate_filenames_in_database2(&mut conn)?;
         all_ids_to_delete.extend(ids_from_duplicates);
     }
 
@@ -583,7 +585,6 @@ Description:
     SMDupeRemover is a tool for removing duplicate filename entries from a Soundminer database.
     It can generate configuration files, prune tags, and compare databases.
 ";
-    // println!("SMDupeRemover v{}\n", VERSION);
     println!("{}", help_message);
 }
 
@@ -647,3 +648,38 @@ const TJF_DEFAULT_ORDER: [&str; 12] = [
     "BWDate ASC",
     "scannedDate ASC",
 ];
+
+
+
+fn count_unique_duplicate_filenames(conn: &Connection) -> Result<usize> {
+    let mut stmt = conn.prepare("
+        SELECT COUNT(*)
+        FROM (
+            SELECT filename
+            FROM justinmetadata
+            GROUP BY filename
+            HAVING COUNT(*) > 1
+        )
+    ")?;
+
+    let count: usize = stmt.query_row([], |row| row.get(0))?;
+
+    Ok(count)
+}
+
+
+fn count_total_duplicate_filenames(conn: &Connection) -> Result<usize> {
+    let mut stmt = conn.prepare("
+        SELECT SUM(occurrence_count)
+        FROM (
+            SELECT COUNT(*) AS occurrence_count
+            FROM justinmetadata
+            GROUP BY filename
+            HAVING COUNT(*) > 1
+        )
+    ")?;
+
+    let count: usize = stmt.query_row([], |row| row.get(0))?;
+
+    Ok(count)
+}

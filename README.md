@@ -75,7 +75,13 @@ The default logic when comparing similar filenames on what to keep is:
     scannedDate ASC  
 
 DESC is descending, ASC is ascending. The higher up in the list, the higher the priority, so first it checks duration and works it's way down.  
-You can really use any column you like from the Soundminer database and create your own custom order/logic
+You can really use any column you like from the Soundminer database and create your own custom order/logic.  I strongly recommend this.
+
+For example, many duplicates in my library are a result of backing up protools sessions.  As a result, many of my dupes have "Audio Files" in their path.
+So I add:  
+####`CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC`
+This will prioritize/save files that do not have "Audio Files" in their path over duplicates that have "Audio Files" in their path.
+Two examples of this are generated in the comments for you when you create this config file via the `--generate-config-files` tag
 
 ### `SMDupe_tags.txt`
 When processing audio files in protools, you can get lots of little tags added on to the end of filenames when creating this new media, but ultimately, it's a duplicate of something you already have in your library.  You can use SMDupe_tags.txt to designate what to look for and have removed from your library. You can designate any combination of characters you like.  I've put in a bunch I've found in my library as a default.  I suggest adding away.  I can also add more to the default you think I've missed.  Just send me a message.
