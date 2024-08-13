@@ -7,9 +7,9 @@ use std::path::Path;
 use std::error::Error;
 // use terminal_size::{Width, terminal_size};
 
-const VERSION: &str = "0.1.5";
+const VERSION: &str = "0.1.6";
 
-const BATCH_SIZE: usize = 10000;
+const BATCH_SIZE: usize = 10;
 
 const DEFAULT_ORDER: [&str; 6] = [
     "duration DESC",
