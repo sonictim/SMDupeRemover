@@ -79,7 +79,7 @@ You can really use any column you like from the Soundminer database and create y
 
 For example, many duplicates in my library are a result of backing up protools sessions.  As a result, many of my dupes have "Audio Files" in their path.
 So I add:  
-#### `CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC`
+##### `CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC`
 This will prioritize/save files that do not have "Audio Files" in their path over duplicates that have "Audio Files" in their path.
 Two examples of this are generated in the comments for you when you create this config file via the `--generate-config-files` tag
 
