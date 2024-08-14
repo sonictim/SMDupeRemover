@@ -635,9 +635,10 @@ fn create_tjf_order_file() -> Result<()> {
 }
 
 
-const TJF_DEFAULT_ORDER: [&str; 20] = [
+const TJF_DEFAULT_ORDER: [&str; 21] = [
     "CASE WHEN pathname LIKE '%TJF RECORDINGS%' THEN 0 ELSE 1 END ASC",
     "CASE WHEN pathname LIKE '%LIBRARIES%' THEN 0 ELSE 1 END ASC",
+    "CASE WHEN Description IS NOT NULL AND Description != '' THEN 0 ELSE 1 END ASC",
     "CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC",
     "CASE WHEN pathname LIKE '%RECORD%' THEN 0 ELSE 1 END ASC",
     "CASE WHEN pathname LIKE '%CREATED SFX%' THEN 0 ELSE 1 END ASC",
