@@ -22,11 +22,12 @@ const DEFAULT_ORDER: [&str; 6] = [
     "scannedDate ASC",
 ];
 
-const DEFAULT_TAGS: [&str; 29] = [
+const DEFAULT_TAGS: [&str; 41] = [
     "-Reverse_", "-RVRS_", "-A2sA_", "-Delays_", "-ZXN5_", "-NYCT_", "-PiSh_", "-PnT2_", "-7eqa_",
     "-Alt7S_", "-AVrP_", "-X2mA_", "-PnTPro_", "-M2DN_", "-PSh_", "-ASMA_", "-TmShft_", "-Dn_",
     "-DVerb_", "-spce_", "-RX7Cnct_", "-AVSt", "-VariFi", "-DEC4_", "-VSPD_", "-6030_", "-NORM_",
-    "-AVrT_", "-RING_"
+    "-AVrT_", "-RING_", "-X2mA_", "-GAIN_", "-PiSh", "-A44m_", "-TCEX", "-TiSh", "-XForm_", "-Z2S5_",
+    "-VariFi_", "-VlhllVV_", "-VtmnStr_", "-ProQ2_", 
 ];
 
 const ORDER_FILE_PATH: &str = "SMDupe_Order.txt";
@@ -634,7 +635,9 @@ fn create_tjf_order_file() -> Result<()> {
 }
 
 
-const TJF_DEFAULT_ORDER: [&str; 18] = [
+const TJF_DEFAULT_ORDER: [&str; 20] = [
+    "CASE WHEN pathname LIKE '%TJF RECORDINGS%' THEN 0 ELSE 1 END ASC",
+    "CASE WHEN pathname LIKE '%LIBRARIES%' THEN 0 ELSE 1 END ASC",
     "CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC",
     "CASE WHEN pathname LIKE '%RECORD%' THEN 0 ELSE 1 END ASC",
     "CASE WHEN pathname LIKE '%CREATED SFX%' THEN 0 ELSE 1 END ASC",
