@@ -24,7 +24,7 @@ To run a program in a local directory you need to add './' So...  `./SMDupeRemov
 You may also need to make sure that it has executable permissions:  `chmod +x SMDupeRemover`\
 Again, if these are new concepts to you, you may not want to use this program.
 
-## **FEATURES:**\
+## **FEATURES:**
 - Search Database for Duplicate Filenames and let it decide which ones to remove
 - Customizable User Defined Logic for deciding which filenames to remove
 - Database Comparison between two databases for overlapping filenames
@@ -71,7 +71,7 @@ displays each file as it's being deleted.  Can FLOOD your terminal
 automatically responds yes to the processing prompts
 
 #### `-u or --unsafe`
-writes DIRECTLY to the database.  Also, skips all the yes, no warnings.  USE WITH CAUTION.
+skips the safety prompt and overwrites your database after deletion 
 
 #### `-h or --help`
 gives a nice help summary
@@ -84,7 +84,7 @@ Use the --generate-config-files option to create/overwrite them with the default
 
 The default logic when comparing similar filenames on what to keep is:  
 
-    duration DESC  
+> duration DESC  
     channels DESC  
     sampleRate DESC  
     bitDepth DESC  
