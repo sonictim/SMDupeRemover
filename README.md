@@ -84,6 +84,8 @@ When processing audio files in protools via Audio Suite, you can get lots of lit
 > NOTE: `SMDupe_tags.txt` will only be processed with the --prune-tags or -t option
 
 ### SMDupe_order.txt
+This file allows you to create your own Logic for how the program decides which file to keep when it finds duplicates.  It uses SQL ORDER logic.
+
 The default logic when comparing similar filenames on what to keep is: 
 
 > duration DESC  
@@ -108,6 +110,8 @@ The first line is will prioritize any file in my *LIBRARIES* fork over anything 
 The second line prioritize deleting records with *Audio Files* in their path over files that do not contain it.
 
 Two examples of this are generated in the comments for you when you create this config file via the `--generate-config-files` tag.  
+
+It's not too hard to figure out, but I found ChatGPT to be very helpful.  Just ask it "In SQLite, I'm trying to order by filepath where files without 'Audio Files' in their path get chosen first"  and it will help you come up with the statement you need.
 
 If you are curious, this is my full config that currently works best for how I have my library organized.  **YMMV**
 
