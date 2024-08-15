@@ -104,7 +104,7 @@ Two examples of this are generated in the comments for you when you create this 
 ### `SMDupe_tags.txt`
 When processing audio files in protools via Audio Suite, you can get lots of little tags added on to the end of filenames when creating this new media, but ultimately, it's a duplicate of something you already have in your library.  `SMDupe_tags.txt` is meant to be a list of these tags, but you can put **any text** you want to use as a flag for deletion in this list.
 
-> NOTE: `SMDupe_tags.txt` will only be processed with the --prune-tags / -t option
+> NOTE: `SMDupe_tags.txt` will only be processed with the --prune-tags or -t option
 
 
 
