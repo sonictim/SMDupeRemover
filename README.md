@@ -80,7 +80,7 @@ gives a nice help summary
 SMDupeRemover has a built in logic and defaults but they can be overridden with the following configuration files.  
 Use the --generate-config-files option to create/overwrite them with the default settings.
 
-- **`SMDupe_order.txt`**\
+- **SMDupe_order.txt**\
 The default logic when comparing similar filenames on what to keep is:  
 > duration DESC  
     channels DESC  
