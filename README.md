@@ -4,8 +4,8 @@
 
 > **USE AT YOUR OWN RISK I OFFER NO SUPPORT OF ANY KIND. BACK UP YOUR DATABASES BEFORE YOU USE THIS PROGRAM!  
 If you are unfailiar with how to run CLI tools or the terminal scares you, maybe this isn't for you.**
->
-> ## **FEATURES:**
+
+## **FEATURES:**
 - Search Database for Duplicate Filenames and let it decide which ones to remove
 - Customizable User Defined Logic for deciding which filenames to remove
 - Database Comparison between two databases for overlapping filenames
