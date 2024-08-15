@@ -110,7 +110,7 @@ The second line prioritize deleting records with *Audio Files* in their path ove
 Two examples of this are generated in the comments for you when you create this config file via the `--generate-config-files` tag.  
 If you would like to see my full config, you can use the `--tjf` flag that will generate a config file with my personal settings.
 
-If you are curious, this is my full config that works best for how I have my library organized.
+If you are curious, this is my full config that currently works best for how I have my library organized.  **YMMV**
 
 > CASE WHEN pathname LIKE '%TJF RECORDINGS%' THEN 0 ELSE 1 END ASC\
 CASE WHEN pathname LIKE '%LIBRARIES%' THEN 0 ELSE 1 END ASC\
