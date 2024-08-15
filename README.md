@@ -102,7 +102,8 @@ CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC
 The first line is will prioritize any file in my *LIBRARIES* fork over anything in the *SHOWS* fork.  
 The second line prioritize deleting records with *Audio Files* in their path over files that do not contain it.
 
-Two examples of this are generated in the comments for you when you create this config file via the `--generate-config-files` tag
+Two examples of this are generated in the comments for you when you create this config file via the `--generate-config-files` tag.  
+If you would like to see my full config, you can use the `--tjf` flag that will generate a config file with my personal settings
 
 ### SMDupe_tags.txt
 When processing audio files in protools via Audio Suite, you can get lots of little tags added on to the end of filenames when creating this new media, but ultimately, it's a duplicate of something you already have in your library.  `SMDupe_tags.txt` is meant to be a list of these tags, but you can put **any text** you want to use as a flag for deletion in this list.
