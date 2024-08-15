@@ -80,17 +80,14 @@ gives a nice help summary
 SMDupeRemover has a built in logic and defaults but they can be overridden with the following configuration files.  
 Use the --generate-config-files option to create/overwrite them with the default settings.
 
-### `SMDupe_order.txt`
-
+- **`SMDupe_order.txt`**\
 The default logic when comparing similar filenames on what to keep is:  
-
 > duration DESC  
     channels DESC  
     sampleRate DESC  
     bitDepth DESC  
     BWDate ASC  
     scannedDate ASC  
-
 DESC is descending, ASC is ascending. The higher up in the list, the higher the priority, so first it checks duration and works it's way down.  
 You can really use any column you like from the Soundminer database and create your own custom order/logic.  I strongly recommend this.
 
