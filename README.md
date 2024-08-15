@@ -93,14 +93,14 @@ DESC is descending, ASC is ascending. The higher up in the list, the higher the 
 You can really **use any column** you like from the Soundminer database and create your own custom order/logic.  In my own Library, I've had the **MOST SUCCESS**
 creating custom decisions in regards to the filepath.  
 
-For example, my library is split into two main forks, `LIBRARIES` and `SHOWS`.  My `SHOWS` fork has not only show library subfolders, but also lots of backups of old sessions. These session backups tend to have files in an 'Audio Files' folder.  Keeping both of these facts in mind, here's how I steer the logic.
+For example, my library is split into two main forks, *LIBRARIES* and *SHOWS*.  My *SHOWS* fork has not only show library subfolders, but also lots of backups of old sessions. These session backups tend to have files in an *Audio Files* folder.  Keeping both of these facts in mind, here's how I steer the logic.
 So I add:  
 
 > CASE WHEN pathname LIKE '%LIBRARIES%' THEN 0 ELSE 1 END ASC  
 CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC
 
-The first line is will prioritize any file in my `LIBRARIES` fork over anything in the `SHOWS` fork.  
-The second line prioritize deleting records with "Audio Files" in their path over files that do not contain it.
+The first line is will prioritize any file in my *LIBRARIES* fork over anything in the *SHOWS* fork.  
+The second line prioritize deleting records with *Audio Files* in their path over files that do not contain it.
 
 Two examples of this are generated in the comments for you when you create this config file via the `--generate-config-files` tag
 
