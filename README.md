@@ -24,10 +24,7 @@ Again, if these are new concepts to you, you may not want to use this program.
 ## USAGE: 
     `SMDupeRemover <database> arguments`
 
-- **SAFETY:**\
-The main program will Copy your database to a new database with _thinned added for identification.  It will then scan the new database for identical filenames and then use logic to decide which one to keep.  The default comparison logic is explained below in configuration.  
-
-> ## **FEATURES:**\
+## **FEATURES:**\
 - Search Database for Duplicate Filenames and let it decide which ones to remove
 - Customizable User Defined Logic for deciding which filenames to remove
 - Database Comparison between two databases for overlapping filenames
@@ -35,9 +32,7 @@ The main program will Copy your database to a new database with _thinned added f
 - Option to create database of just the records removed
 - SAFETY: all work is done in a copy of the designated database
 
-
-
-NOTE: This program only deals with the database files.  After running the program, you can then mirror your library to reflect the changes, or use the duplicates database in soundminer to delete files.
+> NOTE: This program only deals with the database files.  After running the program, you can then mirror your library to reflect the changes, or use the duplicates database in soundminer to delete files.
 
 #### I strongly suggest exploring the -s and -l flags when running this program.
 These tags won't find as many duplicates to remove, but it's a much less overwhelming place to start when you want to figure out what it's removing.
