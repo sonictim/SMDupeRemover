@@ -83,6 +83,8 @@ When processing audio files in protools via Audio Suite, you can get lots of lit
 
 > NOTE: `SMDupe_tags.txt` will only be processed with the --prune-tags or -t option
 
+The -v option will also display what tags it is searching for and how many it finds for each tag
+
 ### SMDupe_order.txt
 This file allows you to create your own Logic for how the program decides which file to keep when it finds duplicates.  It uses SQL ORDER logic.
 
