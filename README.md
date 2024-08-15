@@ -78,6 +78,11 @@ Reminds you how to use the program
 SMDupeRemover has a built in logic and defaults but they can be overridden with the following configuration files.  
 Use the --generate-config-files option to create/overwrite them with the default settings.
 
+### SMDupe_tags.txt
+When processing audio files in protools via Audio Suite, you can get lots of little tags added on to the end of filenames when creating this new media, but ultimately, it's a duplicate of something you already have in your library.  `SMDupe_tags.txt` is meant to be a list of these tags, but you can put **any text** you want to use as a flag for deletion in this list.
+
+> NOTE: `SMDupe_tags.txt` will only be processed with the --prune-tags or -t option
+
 ### SMDupe_order.txt
 The default logic when comparing similar filenames on what to keep is: 
 
@@ -103,12 +108,35 @@ The first line is will prioritize any file in my *LIBRARIES* fork over anything 
 The second line prioritize deleting records with *Audio Files* in their path over files that do not contain it.
 
 Two examples of this are generated in the comments for you when you create this config file via the `--generate-config-files` tag.  
-If you would like to see my full config, you can use the `--tjf` flag that will generate a config file with my personal settings
+If you would like to see my full config, you can use the `--tjf` flag that will generate a config file with my personal settings.
 
-### SMDupe_tags.txt
-When processing audio files in protools via Audio Suite, you can get lots of little tags added on to the end of filenames when creating this new media, but ultimately, it's a duplicate of something you already have in your library.  `SMDupe_tags.txt` is meant to be a list of these tags, but you can put **any text** you want to use as a flag for deletion in this list.
+If you are curious, this is my full config that works best for how I have my library organized.
 
-> NOTE: `SMDupe_tags.txt` will only be processed with the --prune-tags or -t option
+> CASE WHEN pathname LIKE '%TJF RECORDINGS%' THEN 0 ELSE 1 END ASC
+CASE WHEN pathname LIKE '%LIBRARIES%' THEN 0 ELSE 1 END ASC
+CASE WHEN pathname LIKE '%SHOWS/Tim Farrell%' THEN 1 ELSE 0 END ASC
+CASE WHEN Description IS NOT NULL AND Description != '' THEN 0 ELSE 1 END ASC
+CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC
+CASE WHEN pathname LIKE '%RECORD%' THEN 0 ELSE 1 END ASC
+CASE WHEN pathname LIKE '%CREATED SFX%' THEN 0 ELSE 1 END ASC
+CASE WHEN pathname LIKE '%CREATED FX%' THEN 0 ELSE 1 END ASC
+CASE WHEN pathname LIKE '%LIBRARY%' THEN 0 ELSE 1 END ASC
+CASE WHEN pathname LIKE '%/LIBRARY%' THEN 0 ELSE 1 END ASC
+CASE WHEN pathname LIKE '%LIBRARY/%' THEN 0 ELSE 1 END ASC
+CASE WHEN pathname LIKE '%SIGNATURE%' THEN 0 ELSE 1 END ASC
+CASE WHEN pathname LIKE '%PULLS%' THEN 0 ELSE 1 END ASC
+CASE WHEN pathname LIKE '%EDIT%' THEN 1 ELSE 0 END ASC
+CASE WHEN pathname LIKE '%MIX%' THEN 1 ELSE 0 END ASC
+CASE WHEN pathname LIKE '%SESSION%' THEN 1 ELSE 0 END ASC
+duration DESC
+channels DESC
+sampleRate DESC
+bitDepth DESC
+BWDate ASC
+scannedDate ASC
+
+
+
 
 
 
