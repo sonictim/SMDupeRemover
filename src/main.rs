@@ -22,7 +22,7 @@ const DEFAULT_ORDER: [&str; 6] = [
     "scannedDate ASC",
 ];
 
-const DEFAULT_TAGS: [&str; 46] = [
+const DEFAULT_TAGS: [&str; 45] = [
     "-6030_", 
     "-7eqa_",
     "-A2sA_", 
@@ -68,7 +68,6 @@ const DEFAULT_TAGS: [&str; 46] = [
     "-Z2S5_",
     "-Z4n2_",
     "-ZXN5_", 
-    ".wav.new",
 ];
 
 const ORDER_FILE_PATH: &str = "SMDupe_Order.txt";
@@ -639,8 +638,13 @@ fn generate_config_files(tjf: bool) -> Result<()> {
     }
     
     let mut tags_file = File::create(TAG_FILE_PATH).unwrap();
+    writeln!(tags_file, "## Any Text String, if found in the filename, will mark it for deletion.").unwrap();
+    writeln!(tags_file, "## Protools Audio Suite tags with -????_ so these defaults will target those tags.").unwrap();
     for tag in DEFAULT_TAGS {
         writeln!(tags_file, "{}", tag).unwrap();
+    }
+    if tjf {
+        writeln!(tags_file, ".wav.new").unwrap();
     }
     println!("Created {} with default tags.", TAG_FILE_PATH);
     Ok(())
