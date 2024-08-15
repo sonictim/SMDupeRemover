@@ -9,7 +9,7 @@ use std::path::Path;
 use std::error::Error;
 // use terminal_size::{Width, terminal_size};
 
-const VERSION: &str = "0.1.6";
+const VERSION: &str = "0.1.7";
 
 const BATCH_SIZE: usize = 10000;
 
@@ -22,12 +22,53 @@ const DEFAULT_ORDER: [&str; 6] = [
     "scannedDate ASC",
 ];
 
-const DEFAULT_TAGS: [&str; 41] = [
-    "-Reverse_", "-RVRS_", "-A2sA_", "-Delays_", "-ZXN5_", "-NYCT_", "-PiSh_", "-PnT2_", "-7eqa_",
-    "-Alt7S_", "-AVrP_", "-X2mA_", "-PnTPro_", "-M2DN_", "-PSh_", "-ASMA_", "-TmShft_", "-Dn_",
-    "-DVerb_", "-spce_", "-RX7Cnct_", "-AVSt", "-VariFi", "-DEC4_", "-VSPD_", "-6030_", "-NORM_",
-    "-AVrT_", "-RING_", "-X2mA_", "-GAIN_", "-PiSh", "-A44m_", "-TCEX", "-TiSh", "-XForm_", "-Z2S5_",
-    "-VariFi_", "-VlhllVV_", "-VtmnStr_", "-ProQ2_", 
+const DEFAULT_TAGS: [&str; 46] = [
+    "-6030_", 
+    "-7eqa_",
+    "-A2sA_", 
+    "-A44m_", 
+    "-A44s_", 
+    "-Alt7S_", 
+    "-ASMA_", 
+    "-AVrP_", 
+    "-AVrT_", 
+    "-AVSt", 
+    "-DEC4_", 
+    "-Delays_", 
+    "-Dn_",
+    "-DUPL_",
+    "-DVerb_", 
+    "-GAIN_", 
+    "-M2DN_", 
+    "-NORM_",
+    "-NYCT_", 
+    "-PiSh",
+    "  PI SH ",  
+    "-PnT2_", 
+    "-PnTPro_", 
+    "-ProQ2_", 
+    "-PSh_", 
+    "-Reverse_", 
+    "-RVRS_", 
+    "-RING_", 
+    "-RX7Cnct_", 
+    "-spce_", 
+    "-TCEX", 
+    "-TiSh", 
+    "-TmShft_", 
+    "-VariFi", 
+    "-VlhllVV_", 
+    "-VSPD_",
+    "-VitmnMn_", 
+    "-VtmnStr_", 
+    "-X2mA_", 
+    "-X2sA_", 
+    "-XForm_",
+    "-Z2N5_",
+    "-Z2S5_",
+    "-Z4n2_",
+    "-ZXN5_", 
+    ".wav.new",
 ];
 
 const ORDER_FILE_PATH: &str = "SMDupe_Order.txt";
@@ -265,7 +306,7 @@ fn get_db_size(conn: &Connection,) -> usize {
      let count: usize = conn.query_row(
          "SELECT COUNT(*) FROM justinmetadata",
          [],
-         |row| row.get(0)
+         |row| row.get(0) 
      ).unwrap();
      count
 }
@@ -407,11 +448,14 @@ fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Op
 }
 
 
+
+
+
 fn gather_filenames_with_tags(conn: &mut Connection, verbose: bool) -> Result<HashSet<FileRecord>> {
     println!("Searching {} for filenames containing tags", get_connection_source_filepath(&conn));
     let mut file_records = HashSet::new();
-    let mut processed_files = HashSet::new();
-    let tags = get_tags("TAG_FILE_PATH")?;
+    // let mut processed_files = HashSet::new();
+    let tags = get_tags(TAG_FILE_PATH)?;
 
     let mut tags_found: usize = 0;
     for tag in tags {
@@ -426,14 +470,12 @@ fn gather_filenames_with_tags(conn: &mut Connection, verbose: bool) -> Result<Ha
 
         for file_record in rows {
             let file_record = file_record?;
-            if processed_files.insert(file_record.filename.clone()) {
-                file_records.insert(file_record);
-            }
+            file_records.insert(file_record);
         }
 
-        if verbose && !processed_files.is_empty() {
-            println!("Filenames found for tag '{}': {}", tag, processed_files.len()-tags_found);
-            tags_found = processed_files.len();
+        if verbose && !file_records.is_empty() {
+            println!("Filenames found for tag '{}': {}", tag, file_records.len()-tags_found);
+            tags_found = file_records.len();
         }
     }
     println!("{} total records containing tags marked for deletion", file_records.len());
@@ -635,9 +677,10 @@ fn create_tjf_order_file() -> Result<()> {
 }
 
 
-const TJF_DEFAULT_ORDER: [&str; 21] = [
+const TJF_DEFAULT_ORDER: [&str; 22] = [
     "CASE WHEN pathname LIKE '%TJF RECORDINGS%' THEN 0 ELSE 1 END ASC",
     "CASE WHEN pathname LIKE '%LIBRARIES%' THEN 0 ELSE 1 END ASC",
+    "CASE WHEN pathname LIKE '%SHOWS/Tim Farrell%' THEN 1 ELSE 0 END ASC",
     "CASE WHEN Description IS NOT NULL AND Description != '' THEN 0 ELSE 1 END ASC",
     "CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC",
     "CASE WHEN pathname LIKE '%RECORD%' THEN 0 ELSE 1 END ASC",
