@@ -32,9 +32,10 @@ Again, if these are new concepts to you, you may not want to use this program.
 - Option to create database of just the records removed
 - SAFETY: all work is done in a copy of the designated database
 
-> NOTE: This program only deals with the database files.  After running the program, you can then mirror your library to reflect the changes, or use the duplicates database in soundminer to delete files.
+> NOTE: This program only deals with the database files.  After running the program, you can then mirror your library to reflect the changes,
+> or create a duplicates database and open with soundminer and use it to help you decide what to delete
 
-#### I strongly suggest exploring the -s and -l flags when running this program.
+I strongly suggest exploring the -s and -l flags when first running this program.
 These tags won't find as many duplicates to remove, but it's a much less overwhelming place to start when you want to figure out what it's removing.
 
 
