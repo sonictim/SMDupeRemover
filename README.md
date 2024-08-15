@@ -108,7 +108,6 @@ The first line is will prioritize any file in my *LIBRARIES* fork over anything 
 The second line prioritize deleting records with *Audio Files* in their path over files that do not contain it.
 
 Two examples of this are generated in the comments for you when you create this config file via the `--generate-config-files` tag.  
-If you would like to see my full config, you can use the `--tjf` flag that will generate a config file with my personal settings.
 
 If you are curious, this is my full config that currently works best for how I have my library organized.  **YMMV**
 
