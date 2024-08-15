@@ -133,7 +133,7 @@ channels DESC\
 sampleRate DESC\
 bitDepth DESC\
 BWDate ASC\
-scannedDate ASC\
+scannedDate ASC
 
 
 
