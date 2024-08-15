@@ -112,28 +112,28 @@ If you would like to see my full config, you can use the `--tjf` flag that will 
 
 If you are curious, this is my full config that works best for how I have my library organized.
 
-> CASE WHEN pathname LIKE '%TJF RECORDINGS%' THEN 0 ELSE 1 END ASC
-CASE WHEN pathname LIKE '%LIBRARIES%' THEN 0 ELSE 1 END ASC
-CASE WHEN pathname LIKE '%SHOWS/Tim Farrell%' THEN 1 ELSE 0 END ASC
-CASE WHEN Description IS NOT NULL AND Description != '' THEN 0 ELSE 1 END ASC
-CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC
-CASE WHEN pathname LIKE '%RECORD%' THEN 0 ELSE 1 END ASC
-CASE WHEN pathname LIKE '%CREATED SFX%' THEN 0 ELSE 1 END ASC
-CASE WHEN pathname LIKE '%CREATED FX%' THEN 0 ELSE 1 END ASC
-CASE WHEN pathname LIKE '%LIBRARY%' THEN 0 ELSE 1 END ASC
-CASE WHEN pathname LIKE '%/LIBRARY%' THEN 0 ELSE 1 END ASC
-CASE WHEN pathname LIKE '%LIBRARY/%' THEN 0 ELSE 1 END ASC
-CASE WHEN pathname LIKE '%SIGNATURE%' THEN 0 ELSE 1 END ASC
-CASE WHEN pathname LIKE '%PULLS%' THEN 0 ELSE 1 END ASC
-CASE WHEN pathname LIKE '%EDIT%' THEN 1 ELSE 0 END ASC
-CASE WHEN pathname LIKE '%MIX%' THEN 1 ELSE 0 END ASC
-CASE WHEN pathname LIKE '%SESSION%' THEN 1 ELSE 0 END ASC
-duration DESC
-channels DESC
-sampleRate DESC
-bitDepth DESC
-BWDate ASC
-scannedDate ASC
+> CASE WHEN pathname LIKE '%TJF RECORDINGS%' THEN 0 ELSE 1 END ASC\
+CASE WHEN pathname LIKE '%LIBRARIES%' THEN 0 ELSE 1 END ASC\
+CASE WHEN pathname LIKE '%SHOWS/Tim Farrell%' THEN 1 ELSE 0 END ASC\
+CASE WHEN Description IS NOT NULL AND Description != '' THEN 0 ELSE 1 END ASC\
+CASE WHEN pathname LIKE '%Audio Files%' THEN 1 ELSE 0 END ASC\
+CASE WHEN pathname LIKE '%RECORD%' THEN 0 ELSE 1 END ASC\
+CASE WHEN pathname LIKE '%CREATED SFX%' THEN 0 ELSE 1 END ASC\
+CASE WHEN pathname LIKE '%CREATED FX%' THEN 0 ELSE 1 END ASC\
+CASE WHEN pathname LIKE '%LIBRARY%' THEN 0 ELSE 1 END ASC\
+CASE WHEN pathname LIKE '%/LIBRARY%' THEN 0 ELSE 1 END ASC\
+CASE WHEN pathname LIKE '%LIBRARY/%' THEN 0 ELSE 1 END ASC\
+CASE WHEN pathname LIKE '%SIGNATURE%' THEN 0 ELSE 1 END ASC\
+CASE WHEN pathname LIKE '%PULLS%' THEN 0 ELSE 1 END ASC\
+CASE WHEN pathname LIKE '%EDIT%' THEN 1 ELSE 0 END ASC\
+CASE WHEN pathname LIKE '%MIX%' THEN 1 ELSE 0 END ASC\
+CASE WHEN pathname LIKE '%SESSION%' THEN 1 ELSE 0 END ASC\
+duration DESC\
+channels DESC\
+sampleRate DESC\
+bitDepth DESC\
+BWDate ASC\
+scannedDate ASC\
 
 
 
