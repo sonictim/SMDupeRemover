@@ -42,16 +42,16 @@ These tags won't find as many duplicates to remove, but it's a much less overwhe
 ## ARGUMENTS:
 
 #### `--generate-config-files`
-generates SMDupe_tags.txt and SMDupe_order.txt. SMDupe_order.txt defines how the main duplicate checker decides which file to keep.  this will overwrite what's there with the default values if they already exist in the directory.  I suggest running once and then modifying from there if you like.  Without these files, the program will just do the default order/tags I have pre programmed in the program.
+Generates `SMDupe_tags.txt` and `SMDupe_order.txt` SMDupe_order.txt defines how the main duplicate checker decides which file to keep.  this will overwrite what's there with the default values if they already exist in the directory.  I suggest running once and then modifying from there if you like.  Without these files, the program will just do the default order/tags I have pre programmed in the program.
 
 #### `-c or --compare <database2>`
-if any file in the target database exists in the comparison database, it will be removed
+If any file in the target database exists in the comparison database, it will be marked for deletion in the target database
 
 #### `-t or --prune-tags`
-looks for common Protools Processing Tags and removes files with them.  can use SMDupe_tags.txt to define them.
+Looks for common Protools Processing Tags and removes files with them.  Can use `SMDupe_tags.txt` to define them.
 
 #### `-n or --no-filename-check`
-this doesn't run the normal duplicate filename check on the database.  Useful if you want to just remove tags or compare with another database only.
+Skips the normal duplicate filename check on the database.  Useful if you want to just remove tags or compare with another database only.
 
 #### `-g or --group <column>`
 Groups records by the specified column and then searches for duplicates within each group.  If the column data is NULL, those files will be skipped.
@@ -59,22 +59,22 @@ you can also specify `--group-null` and all NULL column data will be put into it
 This will override the -s and -l flags.
 
 #### `-s or --group-by-show and -l or --group-by-library`
-same as above but specifies either the show or library column.  Null entries are ignored.  use '--group-null show' to override. 
+Same as above but specifies either the show or library column.  Null entries are ignored.  use '--group-null show' to override. 
 
 #### `-d or --create-duplicates-database`
-after processing the database it will generate a new database containing all the deletions that were made
+After processing the target database it will generate a new database containing all the deleted records
 
 #### `-v or --verbose`
-displays each file as it's being deleted.  Can FLOOD your terminal
+Displays each file as it's being deleted and some additional processing information.
 
 #### `-y or --no-prompt`
-automatically responds yes to the processing prompts
+Automatically responds yes to the processing prompts
 
 #### `-u or --unsafe`
-skips the safety prompt and overwrites your database after deletion 
+Skips the safety prompt and overwrites your database after deletion 
 
 #### `-h or --help`
-gives a nice help summary
+Reminds you how to use the program
 
 ## CONFIGURATION:
 SMDupeRemover has a built in logic and defaults but they can be overridden with the following configuration files.  
@@ -101,7 +101,7 @@ So I add:
 This will prioritize/save files that do not have "Audio Files" in their path over duplicates that have "Audio Files" in their path.
 Two examples of this are generated in the comments for you when you create this config file via the `--generate-config-files` tag
 
-### `SMDupe_tags.txt`
+### SMDupe_tags.txt
 When processing audio files in protools via Audio Suite, you can get lots of little tags added on to the end of filenames when creating this new media, but ultimately, it's a duplicate of something you already have in your library.  `SMDupe_tags.txt` is meant to be a list of these tags, but you can put **any text** you want to use as a flag for deletion in this list.
 
 > NOTE: `SMDupe_tags.txt` will only be processed with the --prune-tags or -t option
