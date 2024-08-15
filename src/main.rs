@@ -9,7 +9,7 @@ use std::path::Path;
 use std::error::Error;
 // use terminal_size::{Width, terminal_size};
 
-const VERSION: &str = "0.1.7";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const BATCH_SIZE: usize = 10000;
 
