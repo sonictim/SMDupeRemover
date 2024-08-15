@@ -4,7 +4,7 @@
 ##### USE AT YOUR OWN RISK I OFFER NO SUPPORT OF ANY KIND. BACK UP YOUR DATABASES BEFORE YOU USE THIS PROGRAM!
 
 ## INSTALLATION:
-##### DOWNLOAD:
+**DOWNLOAD:**
 If you are a mac user, the compiled binary is found in the `Mac Universal Binary` folder.
 I find it easiest to copy it to the same folder as your Soundminer Databases and run from there.
 If you don't know where those are, you probably shouldn't be running this program.
