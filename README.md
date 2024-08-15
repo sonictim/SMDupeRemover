@@ -16,7 +16,7 @@ I also made a little build script that helps me make the mac universal binary an
 If you know how to build, then you should know how to update this to your needs
 
 - **CLI STUFF:  **
-To run a program in a local directory you need to add './' So...  `./SMDupeRemover`
+To run a program in a local directory you need to add './' So...  >./SMDupeRemover
 You may also need to make sure that it has executable permissions:  `chmod +x SMDupeRemover`
 Again, if these are new concepts to you, you may not want to use this program.
 
