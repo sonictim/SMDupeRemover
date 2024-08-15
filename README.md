@@ -2,8 +2,8 @@
  CLI tool to find and remove duplicate filenames in Soundminer SQLITE databases.\
  This program only looks at filenames, not content.
 
-##### USE AT YOUR OWN RISK I OFFER NO SUPPORT OF ANY KIND. BACK UP YOUR DATABASES BEFORE YOU USE THIS PROGRAM!
-If you are unfailiar with how to run CLI tools or the terminal scares you, maybe this isn't for you.
+> **USE AT YOUR OWN RISK I OFFER NO SUPPORT OF ANY KIND. BACK UP YOUR DATABASES BEFORE YOU USE THIS PROGRAM!  
+If you are unfailiar with how to run CLI tools or the terminal scares you, maybe this isn't for you.**
 
 ## INSTALLATION:
 - **DOWNLOAD:**  
