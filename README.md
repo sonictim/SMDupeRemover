@@ -1,5 +1,6 @@
 # SMDupeRemover
- CLI tool to find and remove duplicate filenames in Soundminer SQLITE databases.  
+ CLI tool to find and remove duplicate filenames in Soundminer SQLITE databases.\
+ This program only looks at filenames, not content.
 
 ##### USE AT YOUR OWN RISK I OFFER NO SUPPORT OF ANY KIND. BACK UP YOUR DATABASES BEFORE YOU USE THIS PROGRAM!
 If you are unfailiar with how to run CLI tools or the terminal scares you, maybe this isn't for you.
@@ -7,31 +8,34 @@ If you are unfailiar with how to run CLI tools or the terminal scares you, maybe
 ## INSTALLATION:
 - **DOWNLOAD:**  
 If you are a mac user, the compiled binary is found in the `Mac Universal Binary` folder.
-I find it easiest to copy it to the same folder as your Soundminer Databases and run from there.
+I find it easiest to copy it to the same folder as your Soundminer Databases and run from there.\
 If you don't know where those are, you probably shouldn't be running this program.
 
 - **BUILD:**\
 It's written in rust.  If you know how to build things in rust, then go nuts!
-I also made a little build script that helps me make the mac universal binary and copies the final program to my Soundminer Databases Folder.
+I also made a little build script that helps me make the mac universal binary and copies the final program to my Soundminer Databases Folder.\
 If you know how to build, then you should know how to update this to your needs
 
 - **CLI STUFF:**\
-To run a program in a local directory you need to add './' So...  `./SMDupeRemover`
-You may also need to make sure that it has executable permissions:  `chmod +x SMDupeRemover`
+To run a program in a local directory you need to add './' So...  `./SMDupeRemover`\
+You may also need to make sure that it has executable permissions:  `chmod +x SMDupeRemover`\
 Again, if these are new concepts to you, you may not want to use this program.
 
 ## USAGE: 
     `SMDupeRemover <database> arguments`
 
-The main program will Copy your database to a new database with _thinned added for identification.  It will then scan the new database for identical filenames and then use logic to decide which one to keep.
-The default comparison logic is explained below in configuration.  
+- **SAFETY:**\
+The main program will Copy your database to a new database with _thinned added for identification.  It will then scan the new database for identical filenames and then use logic to decide which one to keep.  The default comparison logic is explained below in configuration.  
 
-You can also COMPARE two databases and remove any file in the main database that also exists in the comparison database.  
+> ## **FEATURES:**\
+- Search Database for Duplicate Filenames and let it decide which ones to remove
+- Customizable User Defined Logic for deciding which filenames to remove
+- Database Comparison between two databases for overlapping filenames
+- Search/Remove Files with Audio Suite Processing Tags
+- Option to create database of just the records removed
+- SAFETY: all work is done in a copy of the designated database
 
-You can also optionally have it scan for a series of characters (tags) and remove any files with them.  This is useful for finding all those -PiSH_ and -RVRS_ files protools generates.  There is an included default list, or you can create your own SMDupe_tags.txt.  Again --generate-config-files will create these files showing you the default list
 
-The Program runs in the following order if all optional flags are enabled:  
-  Compare Database, then Check For Duplicates in the main database, then Prune Tags.
 
 NOTE: This program only deals with the database files.  After running the program, you can then mirror your library to reflect the changes, or use the duplicates database in soundminer to delete files.
 
