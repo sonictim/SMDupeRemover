@@ -1,13 +1,15 @@
 #![allow(non_snake_case)]
 use rusqlite::{Connection, Result};
 use std::collections::HashSet;
-// use std::collections::HashMap;
+use std::collections::HashMap;
 use std::env;
 use std::fs::{self, File};
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 use std::error::Error;
 // use terminal_size::{Width, terminal_size};
+use regex::Regex;
+// use ordered_float::OrderedFloat;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -79,6 +81,7 @@ const TAG_FILE_PATH: &str = "SMDupe_tags.txt";
 struct FileRecord {
     id: usize,
     filename: String,
+    duration: String,
 }
 
 #[derive(Debug)]
@@ -89,6 +92,7 @@ struct Config {
     filename_check: bool,
     group_sort: Option<String>,
     group_null: bool,
+    numbers_check: bool,
     prune_tags: bool,
     safe: bool,
     prompt: bool,
@@ -103,6 +107,7 @@ impl Config {
         let mut filename_check = true;
         let mut group_sort: Option<String> = None;
         let mut group_null = false;
+        let mut numbers_check = false;
         let mut prune_tags = false;
         let mut safe = true;
         let mut prompt = true;
@@ -114,6 +119,12 @@ impl Config {
             match args[i].as_str() {
                 "--generate-config-files" => {generate_config_files(false).unwrap(); config_gen = true;},
                 "--tjf" => {generate_config_files(true).unwrap(); config_gen = true;},
+                "--all" => {
+                    prune_tags = true;
+                    numbers_check = true;
+                    duplicate_db = true;
+                    filename_check = true;
+                }
                 "--prune-tags" => prune_tags = true,
                 "--no-filename-check" => filename_check = false,
                 "--group-by-show" | "-s" => group_sort = Some("show".to_string()),
@@ -161,6 +172,19 @@ impl Config {
                     if args[i].starts_with('-') && !args[i].starts_with("--") {
                         for c in args[i][1..].chars() {
                             match c {
+                                'a' => {
+                                    prune_tags = true;
+                                    numbers_check = true;
+                                    duplicate_db = true;
+                                    filename_check = true;
+                                }
+                                'A' => {
+                                    prune_tags = true;
+                                    numbers_check = true;
+                                    duplicate_db = true;
+                                    filename_check = true;
+                                    prompt = false;
+                                }
                                 'g' => {
                                     if i + 1 < args.len() {
                                         group_sort = Some(args[i + 1].clone());
@@ -195,6 +219,7 @@ impl Config {
                                         return Err("Missing database name for --compare");
                                     }
                                 },
+                                '#'|'D' => numbers_check = true,
                                 _ => {
                                     println!("Unknown option: -{}", c);
                                     print_help();
@@ -228,6 +253,7 @@ impl Config {
             filename_check,
             group_sort,
             group_null,
+            numbers_check,
             prune_tags,
             safe,
             prompt,
@@ -310,6 +336,17 @@ fn get_db_size(conn: &Connection,) -> usize {
      count
 }
 
+fn get_root_filename(filename: &str) -> Option<String> {
+    // Use regex to strip off trailing pattern like .1, .M, but preserve file extension
+    let re = Regex::new(r"^(?P<base>.+?)(\.\d+|\.\w+)+(?P<ext>\.\w+)$").unwrap();
+    if let Some(caps) = re.captures(filename) {
+        Some(format!("{}{}", &caps["base"], &caps["ext"]))
+    } else {
+        // If no match, return the original filename
+        Some(filename.to_string())
+    }
+}
+
 
 
 // DUPLICATES DB
@@ -334,11 +371,12 @@ fn create_duplicates_db(source_db_path: &str, dupe_records_to_keep: &HashSet<Fil
 //FETCH FUNCTIONS
 fn fetch_filerecords_from_database(conn: &Connection) -> Result<HashSet<FileRecord>> {
     println!("Gathering records from {}", get_connection_source_filepath(&conn));
-    let mut stmt = conn.prepare("SELECT rowid, filename FROM justinmetadata")?;
+    let mut stmt = conn.prepare("SELECT rowid, filename, duration FROM justinmetadata")?;
     let file_records: HashSet<FileRecord> = stmt.query_map([], |row| {
         Ok(FileRecord {
             id: row.get(0)?,
             filename: row.get(1)?,
+            duration: row.get(2)?,
         })
     })?
     .filter_map(Result::ok)
@@ -350,6 +388,7 @@ fn fetch_filerecords_from_database(conn: &Connection) -> Result<HashSet<FileReco
 fn extract_filenames_set_from_records(file_records: &HashSet<FileRecord>) -> HashSet<String> {
     file_records.iter().map(|record| record.filename.clone()).collect()
 }
+
 
 // GATHER FUNCTIONS
 fn gather_compare_database_overlaps(target_conn: &Connection, compare_conn: &Connection) -> Result<HashSet<FileRecord>> {
@@ -409,6 +448,7 @@ fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Op
             SELECT
                 rowid AS id,
                 filename,
+                duration,
                 ROW_NUMBER() OVER (
                     PARTITION BY {}
                     ORDER BY {}
@@ -416,7 +456,7 @@ fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Op
             FROM justinmetadata
             {}
         )
-        SELECT id, filename FROM ranked WHERE rn > 1
+        SELECT id, filename, duration FROM ranked WHERE rn > 1
         ",
         partition_by, order_clause, where_clause
     );
@@ -435,6 +475,7 @@ fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Op
         Ok(FileRecord {
             id: row.get(0)?,
             filename: row.get(1)?,
+            duration: row.get(2)?,
         })
     })?;
 
@@ -446,6 +487,69 @@ fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Op
     Ok(file_records)
 }
 
+fn gather_records_with_trailing_numbers(conn: &mut Connection, total: usize) -> Result<HashSet<FileRecord>, rusqlite::Error> {
+    println!("Searching for duplicate records with .1 or .M at the end of the filename");
+
+    let mut file_records = HashSet::new();
+    let mut file_groups: HashMap<String, Vec<FileRecord>> = HashMap::new();
+
+    // Step 1: Get all filenames and their durations, and group them directly into the HashMap
+    let mut stmt = conn.prepare("SELECT rowid, filename, duration FROM justinmetadata")?;
+    let rows = stmt.query_map([], |row| {
+        Ok(FileRecord {
+            id: row.get(0)?,
+            filename: row.get(1)?,
+            duration: row.get(2)?,
+        })
+    })?;
+
+    println!("Sorting Records");
+    let mut counter: usize = 0;
+
+    for row in rows {
+        let file_record = row?;
+        
+        // Use the get_root_filename function to extract the root filename
+        let base_filename = get_root_filename(&file_record.filename)
+            .unwrap_or_else(|| file_record.filename.clone());
+
+        let _ = io::stdout().flush();
+        print!("\r{} / {}", counter, total);
+        counter += 1;
+
+        // Insert the FileRecord into the HashMap, keyed by base filename
+        file_groups
+            .entry(base_filename)
+            .or_insert_with(Vec::new)
+            .push(file_record);
+    }
+
+    // println!("\nProcessing grouped records");
+
+    for (root, records) in file_groups {
+        // Continue only if there are duplicates in the group
+        if records.len() <= 1 {
+            continue;
+        }
+        // print!("\r Root Filename: {}", root);
+        
+        let root_found = records.iter().any(|record| record.filename == root);
+        
+        if root_found {
+            file_records.extend(
+                records.into_iter().filter(|record| record.filename != root)
+            );
+        } else {
+            file_records.extend(
+                records.into_iter().skip(1)
+            );
+        }
+    }
+
+    println!("\nFound {} total records containing .1 or .M", file_records.len());
+
+    Ok(file_records)
+}
 
 
 
@@ -458,12 +562,13 @@ fn gather_filenames_with_tags(conn: &mut Connection, verbose: bool) -> Result<Ha
 
     let mut tags_found: usize = 0;
     for tag in tags {
-        let query = format!("SELECT rowid, filename FROM justinmetadata WHERE filename LIKE '%' || ? || '%'");
+        let query = format!("SELECT rowid, filename, duration FROM justinmetadata WHERE filename LIKE '%' || ? || '%'");
         let mut stmt = conn.prepare(&query)?;
         let rows = stmt.query_map([tag.clone()], |row| {
             Ok(FileRecord {
                 id: row.get(0)?,
                 filename: row.get(1)?,
+                duration: row.get(2)?,
             })
         })?;
 
@@ -524,7 +629,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     fs::copy(&source_db_path, &work_db_path)?;
 
     let mut conn = Connection::open(&work_db_path)?; 
-    println!("{} Total Records fround in {}", get_db_size(&conn), source_db_path);
+    println!("Gathering Records...");
+    let total_records = get_db_size(&conn);
+    println!("{} Total Records fround in {}", total_records, source_db_path);
   
     let mut all_ids_to_delete = HashSet::<FileRecord>::new();
 
@@ -536,13 +643,17 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if config.filename_check {
         let ids_from_duplicates = gather_duplicate_filenames_in_database(&mut conn, &config.group_sort, config.group_null, config.verbose)?;
-        // let ids_from_duplicates = gather_duplicate_filenames_in_database2(&mut conn)?;
         all_ids_to_delete.extend(ids_from_duplicates);
     }
 
     if config.prune_tags {
         let ids_from_tags = gather_filenames_with_tags(&mut Connection::open(&work_db_path).unwrap(), config.verbose)?;
         all_ids_to_delete.extend(ids_from_tags);
+    }
+    
+    if config.numbers_check {
+        let number_dupes = gather_records_with_trailing_numbers(&mut conn, total_records)?;
+        all_ids_to_delete.extend(number_dupes);
     }
 
     if all_ids_to_delete.is_empty() {
