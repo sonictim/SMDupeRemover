@@ -13,7 +13,7 @@ use regex::Regex;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const BATCH_SIZE: usize = 10000;
+const BATCH_SIZE: usize = 12321;
 
 const DEFAULT_ORDER: [&str; 6] = [
     "duration DESC",
@@ -24,7 +24,8 @@ const DEFAULT_ORDER: [&str; 6] = [
     "scannedDate ASC",
 ];
 
-const DEFAULT_TAGS: [&str; 45] = [
+const DEFAULT_TAGS: [&str; 46] = [
+    "-1eqa_",
     "-6030_", 
     "-7eqa_",
     "-A2sA_", 
@@ -274,7 +275,7 @@ fn check_path(path: &str) -> Option<String> {
 
 // GET FUNCTIONS
 fn get_order(file_path: &str) -> Result<Vec<String>, io::Error> {
-    println!("Determining logic for which record to keep");
+    // println!("Determining duplicate record search logic");
     let path = Path::new(file_path);
 
     if path.exists() {
@@ -362,7 +363,7 @@ fn create_duplicates_db(source_db_path: &str, dupe_records_to_keep: &HashSet<Fil
     delete_file_records(&mut dupe_conn, &dupe_records_to_delete, false)?;
     vacuum_db(&dupe_conn)?;
 
-    println!("\n{} records moved to {}", get_db_size(&dupe_conn), duplicate_db_path);
+    println!("{} records moved to {}", get_db_size(&dupe_conn), duplicate_db_path);
 
     Ok(())
 }
@@ -461,15 +462,17 @@ fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Op
         partition_by, order_clause, where_clause
     );
     
-
+    let total_overlaps = count_total_duplicate_filenames(conn).unwrap();
+    let unique_filenames = count_unique_duplicate_filenames(conn).unwrap();
+    let total = total_overlaps - unique_filenames;
+    
     if verbose {
-        let total_overlaps = count_total_duplicate_filenames(conn).unwrap();
-        let unique_filenames = count_unique_duplicate_filenames(conn).unwrap();
         println!("SQL found {} duplicate records with {} unique filenames", total_overlaps, unique_filenames);
-        println!("{} records can be removed", total_overlaps - unique_filenames);
-        println!("Processing which filenames are best for removal");
     }
-    // Execute the query and gather the duplicates
+    println!("{} records can be removed", total);
+    println!("Processing which filenames are best for removal");
+
+        // Execute the query and gather the duplicates
     let mut stmt = conn.prepare(&sql)?;
     let rows = stmt.query_map([], |row| {
         Ok(FileRecord {
@@ -479,16 +482,21 @@ fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Op
         })
     })?;
 
+    let mut counter: usize = 1;
+
     for file_record in rows {
         file_records.insert(file_record?);
+        let _ = io::stdout().flush();
+        print!("\r{} / {}", counter, total);
+        counter += 1;
     }
-    println!("Marked {} duplicate records for deletion.", file_records.len());
+    println!("\nMarked {} duplicate records for deletion.", file_records.len());
 
     Ok(file_records)
 }
 
 fn gather_records_with_trailing_numbers(conn: &mut Connection, total: usize) -> Result<HashSet<FileRecord>, rusqlite::Error> {
-    println!("Searching for duplicate records with .1 or .M at the end of the filename");
+    println!("Performing Deep Dive Search for Similar Records ending with .1 (or multiple numbers) or .M");
 
     let mut file_records = HashSet::new();
     let mut file_groups: HashMap<String, Vec<FileRecord>> = HashMap::new();
@@ -503,8 +511,8 @@ fn gather_records_with_trailing_numbers(conn: &mut Connection, total: usize) -> 
         })
     })?;
 
-    println!("Sorting Records");
-    let mut counter: usize = 0;
+    println!("Analyzing Records");
+    let mut counter: usize = 1;
 
     for row in rows {
         let file_record = row?;
@@ -546,10 +554,68 @@ fn gather_records_with_trailing_numbers(conn: &mut Connection, total: usize) -> 
         }
     }
 
-    println!("\nFound {} total records containing .1 or .M", file_records.len());
+    println!("\nFound {} total records ending in .1 or .M", file_records.len());
 
     Ok(file_records)
 }
+
+fn gather_records_with_trailing_numbers2(conn: &mut Connection) -> Result<HashSet<FileRecord>, rusqlite::Error> {
+    println!("Searching for duplicate records with .1 or .M at the end of the filename");
+
+    let sql = "
+        WITH RootedFiles AS (
+            SELECT 
+                rowid, 
+                filename, 
+                duration,
+                CASE
+                    WHEN filename LIKE '%.%.%' THEN substr(filename, 1, instr(filename, '.') - 1)
+                    WHEN filename LIKE '%.%' THEN substr(filename, 1, instr(filename, '.') - 1)
+                    ELSE filename
+                END AS root_filename
+            FROM justinmetadata
+        ),
+        GroupedFiles AS (
+            SELECT 
+                root_filename,
+                count(*) as cnt,
+                max(rowid) as max_id
+            FROM RootedFiles
+            GROUP BY root_filename
+            HAVING cnt > 1
+        )
+        SELECT 
+            rf.rowid, 
+            rf.filename, 
+            rf.duration
+        FROM RootedFiles rf
+        JOIN GroupedFiles gf
+            ON rf.root_filename = gf.root_filename
+        WHERE rf.filename != gf.root_filename
+        ORDER BY rf.root_filename;
+    ";
+
+    let mut stmt = conn.prepare(sql)?;
+    let rows = stmt.query_map([], |row| {
+        Ok(FileRecord {
+            id: row.get(0)?,
+            filename: row.get(1)?,
+            duration: row.get(2)?,
+        })
+    })?;
+
+    let mut file_records = HashSet::new();
+
+    for row in rows {
+        let file_record = row?;
+        file_records.insert(file_record);
+    }
+
+    println!("Found {} total records containing .1 or .M", file_records.len());
+
+    Ok(file_records)
+}
+
 
 
 
@@ -589,6 +655,9 @@ fn gather_filenames_with_tags(conn: &mut Connection, verbose: bool) -> Result<Ha
 
 // DELETE FUNCTION
 fn delete_file_records(conn: &mut Connection, records: &HashSet<FileRecord>, verbose: bool) -> Result<()> {
+    let mut counter = 1;
+    let total = records.len();
+    println!("Removing Records Marked as Duplicates");
     let tx = conn.transaction()?;
 
     let mut sorted_records: Vec<_> = records.iter().collect();
@@ -603,7 +672,8 @@ fn delete_file_records(conn: &mut Connection, records: &HashSet<FileRecord>, ver
                 }
             } else {
                 let _ = io::stdout().flush();
-                print!(".");
+                print!("\r{} / {}", counter, total);
+                counter += BATCH_SIZE;
             }
             let placeholders = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
             let query = format!("DELETE FROM justinmetadata WHERE rowid IN ({})", placeholders);
@@ -611,7 +681,7 @@ fn delete_file_records(conn: &mut Connection, records: &HashSet<FileRecord>, ver
             tx.execute(&query, params.as_slice()).map(|_| ())
     })?;
 
-    println!("");
+    println!("\r{} / {}", total, total);
     tx.commit()?;
 
     Ok(())
@@ -625,13 +695,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let config = Config::new(&args)?;
 
     let source_db_path = &config.target_db.unwrap();
-    let work_db_path = format!("{}_thinned.sqlite", &source_db_path.trim_end_matches(".sqlite"));
-    fs::copy(&source_db_path, &work_db_path)?;
+    println!("Opening {}", source_db_path);
 
-    let mut conn = Connection::open(&work_db_path)?; 
-    println!("Gathering Records...");
+    let mut conn = Connection::open(&source_db_path)?; 
+    // println!("Gathering Records...");
     let total_records = get_db_size(&conn);
-    println!("{} Total Records fround in {}", total_records, source_db_path);
+    println!("{} Total Records found in {}", total_records, source_db_path);
   
     let mut all_ids_to_delete = HashSet::<FileRecord>::new();
 
@@ -647,11 +716,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if config.prune_tags {
-        let ids_from_tags = gather_filenames_with_tags(&mut Connection::open(&work_db_path).unwrap(), config.verbose)?;
+        let ids_from_tags = gather_filenames_with_tags(&mut conn, config.verbose)?;
         all_ids_to_delete.extend(ids_from_tags);
     }
     
     if config.numbers_check {
+        // let number_dupes = gather_records_with_trailing_numbers2(&mut conn)?;
         let number_dupes = gather_records_with_trailing_numbers(&mut conn, total_records)?;
         all_ids_to_delete.extend(number_dupes);
     }
@@ -672,10 +742,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
     } 
-    println!("Proceeding with deletion.");  
-
+    
+    let work_db_path = format!("{}_thinned.sqlite", &source_db_path.trim_end_matches(".sqlite"));
+    if config.safe {
+        println!("Backing up {}", source_db_path);
+        fs::copy(&source_db_path, &work_db_path)?;
+        conn = Connection::open(&work_db_path).unwrap();
+    }
+    println!("Proceeding with deletion."); 
+    
     // Perform deletion
-    delete_file_records(&mut Connection::open(&work_db_path).unwrap(), &all_ids_to_delete, config.verbose)?;
+    delete_file_records(&mut conn, &all_ids_to_delete, config.verbose)?;
     vacuum_db(&conn)?;
     println!("Removed {} records.", all_ids_to_delete.len());
 
@@ -684,10 +761,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if config.safe {
-        println!("Original database intact.\nThinned records database moved to: {}", work_db_path);
+        println!("Thinned records database moved to: {}", work_db_path);
     } else {    
-        fs::copy(&work_db_path, &source_db_path)?;
-        std::fs::remove_file(work_db_path)?;
+        // fs::copy(&work_db_path, &source_db_path)?;
+        // std::fs::remove_file(work_db_path)?;
         println!("Database {} sucessfully thinned", source_db_path);
     }
 
@@ -755,7 +832,9 @@ fn generate_config_files(tjf: bool) -> Result<()> {
         writeln!(tags_file, "{}", tag).unwrap();
     }
     if tjf {
-        writeln!(tags_file, ".wav.new").unwrap();
+        writeln!(tags_file, ".wav.").unwrap();
+        writeln!(tags_file, ".aiff.").unwrap();
+        writeln!(tags_file, ".new.").unwrap();
     }
     println!("Created {} with default tags.", TAG_FILE_PATH);
     Ok(())
