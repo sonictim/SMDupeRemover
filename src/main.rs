@@ -127,6 +127,7 @@ impl Config {
                     filename_check = true;
                 }
                 "--prune-tags" => prune_tags = true,
+                "--deep-dive" => numbers_check = true,
                 "--no-filename-check" => filename_check = false,
                 "--group-by-show" | "-s" => group_sort = Some("show".to_string()),
                 "--group-by-library" | "-l" => group_sort = Some("library".to_string()),
@@ -783,8 +784,11 @@ fn print_help() {
 Usage: SMDupeRemover <database> [options]
 
 Options:
+    -a, --all                         Do all the things: Standard dupliate search, tag search, deep dive, create duplicate database
+    -A,                               Same as '-ay' do all the things and no prompt for deletions
     -c, --compare <database>          Compare with another database
     -d, --create-duplicates-database  Generates an additional _dupes database of all files that were removed
+    -D, --deep-dive                   Perform a 'deep dive'duplicates search.  Looking for similar files with .1 or .M before the extension
         --generate-config-files       Generate default config files (SMDupe_order.txt and SMDupe_tags.txt)
     -g, --group <column>              Search for Duplicates within the specified column groupings.  NULL column records skipped
         --group-null <column>         Search for Duplicates within the specified column groupings.  NULL column records processed together
