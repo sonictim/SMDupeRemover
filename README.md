@@ -45,8 +45,15 @@ Generates `SMDupe_tags.txt` and `SMDupe_order.txt` SMDupe_order.txt defines how 
 #### `-c or --compare <comparison_database>`
 If any file in the target database exists in the comparison database, it will be marked for deletion in the target database
 
+#### `-D or --deep-dive`
+Looks for duplicates among filenames with extra .1 or .M at the end of the filename.  
+For example crash.flac, crash.1.flac, crash.1.2.1.flac, and crash.M.flac will be grouped together and then sorted by duraion.  Duplicates are then searched for amongst these sorted groups
+
 #### `-t or --prune-tags`
 Looks for common Protools Processing Tags and removes files with them.  Can use `SMDupe_tags.txt` to define them.
+
+#### `-a or --all`
+Searches for duplicates, checks tags, deep dive search, and creates a duplicates only database after deletion.
 
 #### `-n or --no-filename-check`
 Skips the normal duplicate filename check on the database.  Useful if you want to just remove tags or compare with another database only.
