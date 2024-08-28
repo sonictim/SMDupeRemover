@@ -276,7 +276,6 @@ fn check_path(path: &str) -> Option<String> {
 
 // GET FUNCTIONS
 fn get_order(file_path: &str) -> Result<Vec<String>, io::Error> {
-    // println!("Determining duplicate record search logic");
     let path = Path::new(file_path);
 
     if path.exists() {
@@ -473,7 +472,6 @@ fn gather_duplicate_filenames_in_database(conn: &mut Connection, group_sort: &Op
     println!("{} records can be removed", total);
     println!("Processing which filenames are best for removal");
 
-        // Execute the query and gather the duplicates
     let mut stmt = conn.prepare(&sql)?;
     let rows = stmt.query_map([], |row| {
         Ok(FileRecord {
@@ -502,7 +500,6 @@ fn gather_records_with_trailing_numbers(conn: &mut Connection, total: usize) -> 
     let mut file_records = HashSet::new();
     let mut file_groups: HashMap<String, Vec<FileRecord>> = HashMap::new();
 
-    // Step 1: Get all filenames and their durations, and group them directly into the HashMap
     let mut stmt = conn.prepare("SELECT rowid, filename, duration FROM justinmetadata")?;
     let rows = stmt.query_map([], |row| {
         Ok(FileRecord {
@@ -518,7 +515,6 @@ fn gather_records_with_trailing_numbers(conn: &mut Connection, total: usize) -> 
     for row in rows {
         let file_record = row?;
         
-        // Use the get_root_filename function to extract the root filename
         let base_filename = get_root_filename(&file_record.filename)
             .unwrap_or_else(|| file_record.filename.clone());
 
@@ -526,21 +522,17 @@ fn gather_records_with_trailing_numbers(conn: &mut Connection, total: usize) -> 
         print!("\r{} / {}", counter, total);
         counter += 1;
 
-        // Insert the FileRecord into the HashMap, keyed by base filename
         file_groups
             .entry(base_filename)
             .or_insert_with(Vec::new)
             .push(file_record);
     }
 
-    // println!("\nProcessing grouped records");
-
     for (root, records) in file_groups {
-        // Continue only if there are duplicates in the group
+ 
         if records.len() <= 1 {
             continue;
         }
-        // print!("\r Root Filename: {}", root);
         
         let root_found = records.iter().any(|record| record.filename == root);
         
@@ -560,71 +552,11 @@ fn gather_records_with_trailing_numbers(conn: &mut Connection, total: usize) -> 
     Ok(file_records)
 }
 
-fn gather_records_with_trailing_numbers2(conn: &mut Connection) -> Result<HashSet<FileRecord>, rusqlite::Error> {
-    println!("Searching for duplicate records with .1 or .M at the end of the filename");
-
-    let sql = "
-        WITH RootedFiles AS (
-            SELECT 
-                rowid, 
-                filename, 
-                duration,
-                CASE
-                    WHEN filename LIKE '%.%.%' THEN substr(filename, 1, instr(filename, '.') - 1)
-                    WHEN filename LIKE '%.%' THEN substr(filename, 1, instr(filename, '.') - 1)
-                    ELSE filename
-                END AS root_filename
-            FROM justinmetadata
-        ),
-        GroupedFiles AS (
-            SELECT 
-                root_filename,
-                count(*) as cnt,
-                max(rowid) as max_id
-            FROM RootedFiles
-            GROUP BY root_filename
-            HAVING cnt > 1
-        )
-        SELECT 
-            rf.rowid, 
-            rf.filename, 
-            rf.duration
-        FROM RootedFiles rf
-        JOIN GroupedFiles gf
-            ON rf.root_filename = gf.root_filename
-        WHERE rf.filename != gf.root_filename
-        ORDER BY rf.root_filename;
-    ";
-
-    let mut stmt = conn.prepare(sql)?;
-    let rows = stmt.query_map([], |row| {
-        Ok(FileRecord {
-            id: row.get(0)?,
-            filename: row.get(1)?,
-            duration: row.get(2)?,
-        })
-    })?;
-
-    let mut file_records = HashSet::new();
-
-    for row in rows {
-        let file_record = row?;
-        file_records.insert(file_record);
-    }
-
-    println!("Found {} total records containing .1 or .M", file_records.len());
-
-    Ok(file_records)
-}
-
-
-
-
 
 fn gather_filenames_with_tags(conn: &mut Connection, verbose: bool) -> Result<HashSet<FileRecord>> {
     println!("Searching {} for filenames containing tags", get_connection_source_filepath(&conn));
     let mut file_records = HashSet::new();
-    // let mut processed_files = HashSet::new();
+
     let tags = get_tags(TAG_FILE_PATH)?;
 
     let mut tags_found: usize = 0;
@@ -697,9 +629,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let source_db_path = &config.target_db.unwrap();
     println!("Opening {}", source_db_path);
-
     let mut conn = Connection::open(&source_db_path)?; 
-    // println!("Gathering Records...");
+
     let total_records = get_db_size(&conn);
     println!("{} Total Records found in {}", total_records, source_db_path);
   
@@ -722,7 +653,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     
     if config.numbers_check {
-        // let number_dupes = gather_records_with_trailing_numbers2(&mut conn)?;
         let number_dupes = gather_records_with_trailing_numbers(&mut conn, total_records)?;
         all_ids_to_delete.extend(number_dupes);
     }
@@ -752,7 +682,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     println!("Proceeding with deletion."); 
     
-    // Perform deletion
     delete_file_records(&mut conn, &all_ids_to_delete, config.verbose)?;
     vacuum_db(&conn)?;
     println!("Removed {} records.", all_ids_to_delete.len());
@@ -764,8 +693,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     if config.safe {
         println!("Thinned records database moved to: {}", work_db_path);
     } else {    
-        // fs::copy(&work_db_path, &source_db_path)?;
-        // std::fs::remove_file(work_db_path)?;
         println!("Database {} sucessfully thinned", source_db_path);
     }
 
