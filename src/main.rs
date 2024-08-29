@@ -674,6 +674,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     } 
     
+    if config.duplicate_db && all_ids_to_delete.len() > 0 {
+        create_duplicates_db(&source_db_path, &all_ids_to_delete)?;
+    }
+    
     let work_db_path = format!("{}_thinned.sqlite", &source_db_path.trim_end_matches(".sqlite"));
     if config.safe {
         println!("Backing up {}", source_db_path);
@@ -686,9 +690,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     vacuum_db(&conn)?;
     println!("Removed {} records.", all_ids_to_delete.len());
 
-    if config.duplicate_db && all_ids_to_delete.len() > 0 {
-        create_duplicates_db(&source_db_path, &all_ids_to_delete)?;
-    }
 
     if config.safe {
         println!("Thinned records database moved to: {}", work_db_path);
